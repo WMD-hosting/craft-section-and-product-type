@@ -1,18 +1,26 @@
 {
     "name": "wmd/section-and-product-type",
-    "description": "If you buidling some Page content builder this can very usefull field type",
+    "description": "Craft CMS field types for selecting sections, entry types, Commerce product types and tag groups. Built for page builders and dynamic content listings.",
     "type": "craft-plugin",
-    "version": "2.0.8",
+    "version": "2.1.0",
     "keywords": [
         "craft",
         "cms",
         "craftcms",
         "craft-plugin",
-        "section and product type"
+        "craft5",
+        "field",
+        "field-type",
+        "section",
+        "entry type",
+        "product type",
+        "tag group",
+        "commerce",
+        "page builder"
     ],
     "support": {
-        "docs": "https://github.com/https://github.com/section-and-product-type/blob/master/README.md",
-        "issues": "https://github.com/https://github.com/section-and-product-type/issues"
+        "docs": "https://github.com/wmdhosting/craft3-section-and-product-type-field/blob/main/README.md",
+        "issues": "https://github.com/wmdhosting/craft3-section-and-product-type-field/issues"
     },
     "license": "MIT",
     "authors": [
@@ -22,8 +30,8 @@
         }
     ],
     "require": {
-         "craftcms/cms": "^5.0.0-alpha.1",
-         "php": "^8.0.2"
+         "craftcms/cms": "^5.0.0",
+         "php": "^8.2"
     },
     "autoload": {
         "psr-4": {
@@ -35,8 +43,8 @@
         "handle": "section-and-product-type",
         "developer": "WMD Hosting",
         "developerUrl": "https://wmd.hosting/",
-        "documentationUrl": "https://github.com/https://github.com/section-and-product-type/blob/master/README.md",
-        "changelogUrl": "https://raw.githubusercontent.com/https://github.com/section-and-product-type/master/CHANGELOG.md",
+        "documentationUrl": "https://github.com/wmdhosting/craft3-section-and-product-type-field/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/wmdhosting/craft3-section-and-product-type-field/main/CHANGELOG.md",
         "class": "wmd\\sectionandproducttype\\SectionAndProductType"
     }
 }
