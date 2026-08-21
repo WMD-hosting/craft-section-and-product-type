@@ -1,4 +1,4 @@
-# Section + Product Type
+# Section + Entry type + Product Type
 
 [![Craft CMS](https://img.shields.io/badge/Craft%20CMS-5.x-E5422B)](https://craftcms.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
@@ -33,7 +33,7 @@ where the editor decides *what kind* of content a block pulls in.
 
 ## Installation
 
-From the Craft Control Panel, go to **Plugin Store**, search for *Section + Product Type* and
+From the Craft Control Panel, go to **Plugin Store**, search for *Section + Entry type + Product Type* and
 click **Install**.
 
 Or from your terminal:

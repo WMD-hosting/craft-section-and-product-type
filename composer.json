@@ -39,7 +39,7 @@
         }
     },
     "extra": {
-        "name": "Section + Product Type",
+        "name": "Section + Entry type + Product Type",
         "handle": "section-and-product-type",
         "developer": "WMD Hosting",
         "developerUrl": "https://wmd.hosting/",
