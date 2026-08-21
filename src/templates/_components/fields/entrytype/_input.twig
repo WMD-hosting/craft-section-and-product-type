@@ -6,15 +6,14 @@
                         id : field.handle,
                         name : field.handle,
                         values: value,
-                        options: productTypes
+                        options: entryTypes
                 }) }}
         {% else %}
                 {{ forms.checkboxGroup({
                         id : field.handle,
                         name : field.handle,
                         values: value,
-                        placeholder: 'Choose Product Type...' | t('section-and-product-type'),
-                        options: productTypes
+                        options: entryTypes
                 }) }}
         {% endif %}
 {% else %}
@@ -23,18 +22,17 @@
                         id : field.handle,
                         name : field.handle,
                         value: value,
-                        options: productTypes
+                        options: entryTypes
                 }) }}
         {% else %}
                 {{ forms.radioGroup({
                         id : field.handle,
                         name : field.handle,
                         value: value,
-                        placeholder: 'Choose Product Type...' | t('section-and-product-type'),
-                        options: productTypes
+                        options: entryTypes
                 }) }}
         {% endif %}
         {% if value is iterable %}
-                <p class="warning">{{ "Multiple product type selected but only one can be selected in the field." | t('section-and-product-type') }}</p>
+                <p class="warning">{{ "Multiple entry types selected but only one can be selected in the field." | t('section-and-product-type') }}</p>
         {% endif %}
 {% endif %}

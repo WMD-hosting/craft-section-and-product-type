@@ -10,6 +10,11 @@ use craft\base\ElementInterface;
 use craft\errors\InvalidFieldException;
 use craft\base\PreviewableFieldInterface;
 use craft\commerce\services\ProductTypes;
+use craft\helpers\Html;
+use GraphQL\Type\Definition\Type;
+use wmd\sectionandproducttype\SectionAndProductType;
+use wmd\sectionandproducttype\models\SelectedItems;
+use wmd\sectionandproducttype\assetbundles\FieldSettingsAsset;
 
 
 class ProductTypeField extends Field implements PreviewableFieldInterface
@@ -35,6 +40,26 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
     public array $excludedProductTypes = [];
 
     /**
+     * @var string Part of handle for selected product type by this part
+     */
+    public string $partOfHandle = '';
+
+    /**
+     * @var string How the product types are presented when editing an entry.
+     *
+     * Either `list` (radio buttons or checkboxes) or `dropdown` (a select menu).
+     */
+    public string $viewMode = SectionAndProductType::VIEW_MODE_LIST;
+
+    /**
+     * @var string What the field hands back in templates.
+     *
+     * Either `ids` (the selected IDs, as this plugin has always done) or
+     * `objects` (a SelectedItems object wrapping the models).
+     */
+    public string $valueType = SectionAndProductType::VALUE_TYPE_IDS;
+
+    /**
      * @inheritdoc
      */
     public static function displayName(): string
@@ -52,6 +77,23 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
         $rules[] = [
             ['allowProductTypes'],
             'validateAllowProductTypes'
+        ];
+
+        $rules[] = [
+            ['valueType'],
+            'in',
+            'range' => [
+                SectionAndProductType::VALUE_TYPE_IDS,
+                SectionAndProductType::VALUE_TYPE_OBJECTS,
+            ],
+        ];
+        $rules[] = [
+            ['viewMode'],
+            'in',
+            'range' => [
+                SectionAndProductType::VIEW_MODE_LIST,
+                SectionAndProductType::VIEW_MODE_DROPDOWN,
+            ],
         ];
 
         return $rules;
@@ -158,7 +200,105 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
             }
         }
 
+        if ($this->valueType === SectionAndProductType::VALUE_TYPE_OBJECTS) {
+            return $this->toSelectedItems($value);
+        }
+
         return $value;
+    }
+
+    /**
+     * Wrap the selected IDs in a SelectedItems object.
+     *
+     * @param mixed $value
+     *
+     * @return SelectedItems
+     */
+    private function toSelectedItems($value): SelectedItems
+    {
+        $items = [];
+
+        foreach ($this->valueIds($value) as $id) {
+            $item = (new ProductTypes)->getProductTypeById($id);
+            if ($item) {
+                $items[] = $item;
+            }
+        }
+
+        return new SelectedItems($items);
+    }
+
+    /**
+     * Reduce any shape this field's value can take to a list of integer IDs.
+     *
+     * @param mixed $value
+     *
+     * @return array
+     */
+    private function valueIds($value): array
+    {
+        if ($value instanceof SelectedItems) {
+            return $value->ids();
+        }
+
+        if (!is_array($value)) {
+            $value = ($value === null || $value === '') ? [] : [$value];
+        }
+
+        return array_map('intval', array_filter($value, static fn($id) => $id !== '' && $id !== null));
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getPreviewHtml(mixed $value, ElementInterface $element): string
+    {
+        $options = $this->getProductTypes();
+
+        $names = [];
+        foreach ($this->valueIds($value) as $id) {
+            if (isset($options[$id])) {
+                $names[] = $options[$id];
+            }
+        }
+
+        return Html::encode(implode(', ', $names));
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getContentGqlType(): Type|array
+    {
+        return [
+            'name' => $this->handle,
+            'type' => $this->multiple ? Type::listOf(Type::int()) : Type::int(),
+            'resolve' => function($source) {
+                $ids = $this->valueIds($source->getFieldValue($this->handle));
+
+                return $this->multiple ? $ids : ($ids[0] ?? null);
+            },
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getContentGqlMutationArgumentType(): Type|array
+    {
+        return $this->multiple ? Type::listOf(Type::int()) : Type::int();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function isValueEmpty(mixed $value, ElementInterface $element): bool
+    {
+        if ($value instanceof SelectedItems) {
+            return $value->isEmpty();
+        }
+
+        return parent::isValueEmpty($value, $element);
     }
 
     /**
@@ -166,6 +306,11 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
      */
     public function serializeValue($value, ?ElementInterface $element = null): Mixed
     {
+        if ($value instanceof SelectedItems) {
+            $ids = $value->ids();
+            $value = $this->multiple ? $ids : ($ids[0] ?? '');
+        }
+
         if (is_array($value)) {
             foreach ($value as $key => $id) {
                 $value[$key] = intval($id);
@@ -180,12 +325,19 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
      */
     public function getSettingsHtml(): ?string
     {
-        return Craft::$app->getView()->renderTemplate(
+        $view = Craft::$app->getView();
+        $view->registerAssetBundle(FieldSettingsAsset::class);
+
+        return $view->renderTemplate(
             'section-and-product-type/_components/fields/producttype/_settings',
             [
                 'field' => $this,
                 'productTypes' => $this->getProductTypes(),
+                'productTypeOptions' => $this->getProductTypeOptions(),
+                'viewModes' => SectionAndProductType::viewModeOptions(),
+                'valueTypes' => SectionAndProductType::valueTypeOptions(),
                 'selectAll' => $this->selectAll,
+                'partOfHandle' => $this->partOfHandle,
             ]
         );
     }
@@ -207,11 +359,51 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
     }
 
     /**
+     * Return all product types handles.
+     *
+     * @return array
+     */
+    private function getProductTypesHandles()
+    {
+        $allProductTypes = (new ProductTypes)->getAllProductTypes();
+
+        $productTypes = [];
+        foreach ($allProductTypes as $productType) {
+            $productTypes[$productType->id] = $productType->handle;
+        }
+        return $productTypes;
+    }
+
+    /**
+     * Return all product types as option arrays carrying each product type's
+     * handle, so the field settings can be filtered by name or by handle.
+     *
+     * @return array
+     */
+    private function getProductTypeOptions(): array
+    {
+        $handles = $this->getProductTypesHandles();
+
+        $options = [];
+        foreach ($this->getProductTypes() as $id => $name) {
+            $options[] = [
+                'label' => $name,
+                'value' => $id,
+                'data' => ['handle' => $handles[$id] ?? ''],
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
      * @inheritdoc
      */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        if (empty($this->allowProductTypes) && empty($this->selectAll)) return 'You have not selected any product types for selection, select in the field settings.';
+        if (empty($this->allowProductTypes) && empty($this->selectAll) && empty($this->partOfHandle)) {
+            return 'You have not selected any product types for selection, select in the field settings.';
+        }
 
         $productTypes = $this->getProductTypes();
         $allowProductTypesConfig = $this->allowProductTypes;
@@ -223,6 +415,14 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
                 }
             }
             $allowProductTypesConfig = array_keys($productTypes);
+        } else if(!empty($this->partOfHandle)) {
+            foreach ($this->getProductTypesHandles() as $id => $handle) {
+                if (stripos($handle, $this->partOfHandle) !== false
+                    && !in_array($id, $allowProductTypesConfig)
+                    && !in_array($id, $this->excludedProductTypes)) {
+                    $allowProductTypesConfig[] = $id;
+                }
+            }
         }
 
         $allowProductTypes = array_flip($allowProductTypesConfig);
@@ -237,6 +437,7 @@ class ProductTypeField extends Field implements PreviewableFieldInterface
                 'field' => $this,
                 'value' => $value,
                 'productTypes' => $allowProductTypes,
+                'dropdown' => $this->viewMode === SectionAndProductType::VIEW_MODE_DROPDOWN,
             ]
         );
     }

@@ -12,10 +12,31 @@ use craft\events\RegisterComponentTypesEvent;
 use wmd\sectionandproducttype\fields\SectionField;
 use wmd\sectionandproducttype\fields\TagGroupField;
 use wmd\sectionandproducttype\fields\ProductTypeField;
+use wmd\sectionandproducttype\fields\EntryTypeField;
 
 
 class SectionAndProductType extends Plugin
 {
+    /**
+     * @var string View mode that renders a field's options as radio buttons or checkboxes.
+     */
+    public const VIEW_MODE_LIST = 'list';
+
+    /**
+     * @var string View mode that renders a field's options as a select menu.
+     */
+    public const VIEW_MODE_DROPDOWN = 'dropdown';
+
+    /**
+     * @var string Template value that returns the selected IDs, as this plugin has always done.
+     */
+    public const VALUE_TYPE_IDS = 'ids';
+
+    /**
+     * @var string Template value that returns a SelectedItems object wrapping the selected models.
+     */
+    public const VALUE_TYPE_OBJECTS = 'objects';
+
     /**
      * @var SectionAndProductType
      */
@@ -51,6 +72,7 @@ class SectionAndProductType extends Plugin
                 $event->types[] = SectionField::class;
                 $event->types[] = ProductTypeField::class;
                 $event->types[] = TagGroupField::class;
+                $event->types[] = EntryTypeField::class;
             }
         );
 
@@ -64,4 +86,41 @@ class SectionAndProductType extends Plugin
         );
     }
 
+    /**
+     * Return the view mode options offered by every field type of this plugin.
+     *
+     * @return array
+     */
+    public static function viewModeOptions(): array
+    {
+        return [
+            [
+                'label' => Craft::t('section-and-product-type', 'List'),
+                'value' => self::VIEW_MODE_LIST,
+            ],
+            [
+                'label' => Craft::t('section-and-product-type', 'Dropdown'),
+                'value' => self::VIEW_MODE_DROPDOWN,
+            ],
+        ];
+    }
+
+    /**
+     * Return the template value options offered by every field type of this plugin.
+     *
+     * @return array
+     */
+    public static function valueTypeOptions(): array
+    {
+        return [
+            [
+                'label' => Craft::t('section-and-product-type', 'IDs'),
+                'value' => self::VALUE_TYPE_IDS,
+            ],
+            [
+                'label' => Craft::t('section-and-product-type', 'Objects'),
+                'value' => self::VALUE_TYPE_OBJECTS,
+            ],
+        ];
+    }
 }

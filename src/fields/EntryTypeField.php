@@ -6,44 +6,44 @@ use Craft;
 use yii\db\Schema;
 use craft\base\Field;
 use craft\helpers\Json;
+use craft\helpers\Html;
 use craft\base\ElementInterface;
 use craft\base\PreviewableFieldInterface;
-use craft\helpers\Html;
 use GraphQL\Type\Definition\Type;
 use wmd\sectionandproducttype\SectionAndProductType;
 use wmd\sectionandproducttype\models\SelectedItems;
 use wmd\sectionandproducttype\assetbundles\FieldSettingsAsset;
 
 
-class SectionField extends Field implements PreviewableFieldInterface
+class EntryTypeField extends Field implements PreviewableFieldInterface
 {
     /**
-     * @var bool Contains  values for select all sections.
+     * @var bool Contains values for select all entry types.
      */
     public bool $selectAll = false;
 
     /**
-     * @var bool Contains multi-select values for sections.
+     * @var bool Contains multi-select values for entry types.
      */
     public bool $multiple = false;
 
     /**
-     * @var array Sections that are allowed for selection in the field settings.
+     * @var array Entry types that are allowed for selection in the field settings.
      */
-    public array $allowedSections = [];
+    public array $allowedEntryTypes = [];
 
     /**
-     * @var array Sections that are allowed for selection in the field settings.
+     * @var array Entry types that are excluded from selection in the field settings.
      */
-    public array $excludedSections = [];
+    public array $excludedEntryTypes = [];
 
     /**
-     * @var string Part of handle for selected section by this part
+     * @var string Part of handle for selected entry type by this part
      */
     public string $partOfHandle = '';
 
     /**
-     * @var string How the sections are presented when editing an entry.
+     * @var string How the entry types are presented when editing an entry.
      *
      * Either `list` (radio buttons or checkboxes) or `dropdown` (a select menu).
      */
@@ -52,18 +52,17 @@ class SectionField extends Field implements PreviewableFieldInterface
     /**
      * @var string What the field hands back in templates.
      *
-     * Either `ids` (the selected section IDs, as this plugin has always done)
-     * or `objects` (a SelectedItems object wrapping the Section models).
+     * Either `ids` (the selected entry type IDs) or `objects` (a SelectedItems
+     * object wrapping the EntryType models).
      */
     public string $valueType = SectionAndProductType::VALUE_TYPE_IDS;
 
-    
     /**
      * @inheritdoc
      */
     public static function displayName(): string
     {
-        return Craft::t('section-and-product-type', 'Section');
+        return Craft::t('section-and-product-type', 'Entry Type');
     }
 
     /**
@@ -73,8 +72,8 @@ class SectionField extends Field implements PreviewableFieldInterface
     {
         $rules = parent::rules();
         $rules[] = [
-            ['allowedSections'],
-            'validateAllowedSections'
+            ['allowedEntryTypes'],
+            'validateAllowedEntryTypes'
         ];
         $rules[] = [
             ['valueType'],
@@ -96,73 +95,67 @@ class SectionField extends Field implements PreviewableFieldInterface
     }
 
     /**
-     * Checking for the existence of sections for selection.
+     * Checking for the existence of entry types for selection.
      *
      * @param string $attribute Attribute validated.
      *
      * @return void
      */
-    public function validateAllowedSections(string $attribute)
+    public function validateAllowedEntryTypes(string $attribute)
     {
-        $sections = $this->getSections();
+        $entryTypes = $this->getEntryTypes();
 
-        foreach ($this->allowedSections as $section) {
-            if (!isset($sections[$section])) {
-                $this->addError($attribute, Craft::t('section-and-product-type', 'Invalid section selected.'));
+        foreach ($this->allowedEntryTypes as $entryType) {
+            if (!isset($entryTypes[$entryType])) {
+                $this->addError($attribute, Craft::t('section-and-product-type', 'Invalid entry type selected.'));
             }
         }
     }
 
     /**
-     * Return all sections.
+     * Return all entry types.
      *
      * @return array
      */
-    private function getSections()
+    private function getEntryTypes()
     {
-        $sections = [];
-        $editableSections = Craft::$app->getEntries()->getEditableSections();
+        $entryTypes = [];
 
-        if (!empty($editableSections)) {
-            foreach ($editableSections as $section) {
-                $sections[$section->id] = Craft::t('site', $section->name);
-            }
+        foreach (Craft::$app->getEntries()->getAllEntryTypes() as $entryType) {
+            $entryTypes[$entryType->id] = Craft::t('site', $entryType->name);
         }
 
-        return $sections;
+        return $entryTypes;
     }
-    
+
     /**
-     * Return all sections handles.
+     * Return all entry type handles.
      *
      * @return array
      */
-    private function getSectionsHandles()
+    private function getEntryTypesHandles()
     {
-        $sections = [];
-        $editableSections = Craft::$app->getEntries()->getEditableSections();
+        $entryTypes = [];
 
-        if (!empty($editableSections)) {
-            foreach ($editableSections as $section) {
-                $sections[$section->id] = $section->handle;
-            }
+        foreach (Craft::$app->getEntries()->getAllEntryTypes() as $entryType) {
+            $entryTypes[$entryType->id] = $entryType->handle;
         }
 
-        return $sections;
+        return $entryTypes;
     }
 
     /**
-     * Return all sections as option arrays carrying each section's handle,
+     * Return all entry types as option arrays carrying each entry type's handle,
      * so the field settings can be filtered by name or by handle.
      *
      * @return array
      */
-    private function getSectionOptions(): array
+    private function getEntryTypeOptions(): array
     {
-        $handles = $this->getSectionsHandles();
+        $handles = $this->getEntryTypesHandles();
 
         $options = [];
-        foreach ($this->getSections() as $id => $name) {
+        foreach ($this->getEntryTypes() as $id => $name) {
             $options[] = [
                 'label' => $name,
                 'value' => $id,
@@ -182,26 +175,26 @@ class SectionField extends Field implements PreviewableFieldInterface
     }
 
     /**
-     * Return sections without excluded sections
+     * Return entry types without excluded entry types
      *
      * @return array
      */
-    public function getAllowedSections(): array
+    public function getAllowedEntryTypes(): array
     {
-        $sections = $this->getSections();
-        $excludedSections = $this->excludedSections;
+        $entryTypes = $this->getEntryTypes();
+        $excludedEntryTypes = $this->excludedEntryTypes;
 
-        if (!empty($excludedSections)  && !empty($this->selectAll) ) {
-            $excludedSections = array_map(function($value) {
+        if (!empty($excludedEntryTypes) && !empty($this->selectAll)) {
+            $excludedEntryTypes = array_map(function($value) {
                 return intval($value);
-            }, $excludedSections);
+            }, $excludedEntryTypes);
 
-            foreach ($excludedSections as $value) {
-                unset($sections[$value]);
+            foreach ($excludedEntryTypes as $value) {
+                unset($entryTypes[$value]);
             }
         }
 
-        return $sections;
+        return $entryTypes;
     }
 
     /**
@@ -241,16 +234,16 @@ class SectionField extends Field implements PreviewableFieldInterface
      */
     private function toSelectedItems($value): SelectedItems
     {
-        $sections = [];
+        $items = [];
 
         foreach ($this->valueIds($value) as $id) {
-            $section = Craft::$app->getEntries()->getSectionById($id);
-            if ($section) {
-                $sections[] = $section;
+            $item = Craft::$app->getEntries()->getEntryTypeById($id);
+            if ($item) {
+                $items[] = $item;
             }
         }
 
-        return new SelectedItems($sections);
+        return new SelectedItems($items);
     }
 
     /**
@@ -278,12 +271,12 @@ class SectionField extends Field implements PreviewableFieldInterface
      */
     public function getPreviewHtml(mixed $value, ElementInterface $element): string
     {
-        $sections = $this->getSections();
+        $options = $this->getEntryTypes();
 
         $names = [];
         foreach ($this->valueIds($value) as $id) {
-            if (isset($sections[$id])) {
-                $names[] = $sections[$id];
+            if (isset($options[$id])) {
+                $names[] = $options[$id];
             }
         }
 
@@ -354,11 +347,11 @@ class SectionField extends Field implements PreviewableFieldInterface
         $view->registerAssetBundle(FieldSettingsAsset::class);
 
         return $view->renderTemplate(
-            'section-and-product-type/_components/fields/section/_settings',
+            'section-and-product-type/_components/fields/entrytype/_settings',
             [
                 'field' => $this,
-                'sections' => $this->getSections(),
-                'sectionOptions' => $this->getSectionOptions(),
+                'entryTypes' => $this->getEntryTypes(),
+                'entryTypeOptions' => $this->getEntryTypeOptions(),
                 'viewModes' => SectionAndProductType::viewModeOptions(),
                 'valueTypes' => SectionAndProductType::valueTypeOptions(),
                 'selectAll' => $this->selectAll,
@@ -372,42 +365,42 @@ class SectionField extends Field implements PreviewableFieldInterface
      */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        if (empty($this->allowedSections) && empty($this->selectAll) && empty($this->partOfHandle)) {
-            return 'You have not selected any section for selection, select in the field settings.';
+        if (empty($this->allowedEntryTypes) && empty($this->selectAll) && empty($this->partOfHandle)) {
+            return 'You have not selected any entry types for selection, select in the field settings.';
         }
 
-        $sections = $this->getSections();
-        $allowSectionsConfig = $this->allowedSections;
+        $entryTypes = $this->getEntryTypes();
+        $allowEntryTypesConfig = $this->allowedEntryTypes;
 
         if ($this->selectAll) {
-            if (is_array($this->excludedSections)) {
-                foreach ($this->excludedSections as $sectionId) {
-                    unset($sections[$sectionId]);
+            if (is_array($this->excludedEntryTypes)) {
+                foreach ($this->excludedEntryTypes as $entryTypeId) {
+                    unset($entryTypes[$entryTypeId]);
                 }
             }
-            $allowSectionsConfig = array_keys($sections);
+            $allowEntryTypesConfig = array_keys($entryTypes);
         } else if(!empty($this->partOfHandle)) {
-            foreach ($this->getSectionsHandles() as $id => $handle) {
+            foreach ($this->getEntryTypesHandles() as $id => $handle) {
                 if (stripos($handle, $this->partOfHandle) !== false
-                    && !in_array($id, $allowSectionsConfig)
-                    && !in_array($id, $this->excludedSections)) {
-                    $allowSectionsConfig[] = $id;
+                    && !in_array($id, $allowEntryTypesConfig)
+                    && !in_array($id, $this->excludedEntryTypes)) {
+                    $allowEntryTypesConfig[] = $id;
                 }
             }
         }
 
-        $allowSections = array_flip($allowSectionsConfig);
-        $allowSections[''] = true;
+        $allowEntryTypes = array_flip($allowEntryTypesConfig);
+        $allowEntryTypes[''] = true;
         if (!$this->multiple && !$this->required) {
-            $sections = ['' => Craft::t('app', 'None')] + $sections;
+            $entryTypes = ['' => Craft::t('app', 'None')] + $entryTypes;
         }
-        $allowSections = array_intersect_key($sections, $allowSections);
+        $allowEntryTypes = array_intersect_key($entryTypes, $allowEntryTypes);
 
         return Craft::$app->getView()->renderTemplate(
-            'section-and-product-type/_components/fields/section/_input', [
+            'section-and-product-type/_components/fields/entrytype/_input', [
                 'field' => $this,
                 'value' => $value,
-                'sections' => $allowSections,
+                'entryTypes' => $allowEntryTypes,
                 'dropdown' => $this->viewMode === SectionAndProductType::VIEW_MODE_DROPDOWN,
             ]
         );
