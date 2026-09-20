@@ -2,7 +2,6 @@
     "name": "wmd/section-and-product-type",
     "description": "Craft CMS field types for selecting sections, entry types, Commerce product types and tag groups. Built for page builders and dynamic content listings.",
     "type": "craft-plugin",
-    "version": "2.2.1",
     "keywords": [
         "craft",
         "cms",
