@@ -1,0 +1,36 @@
+{# Shared author-facing input. `value` is an ID list (multiple) or a single ID / ''. #}
+{% import '_includes/forms' as forms %}
+
+{% if field.multiple %}
+    {% if dropdown %}
+        {{ forms.multiselect({
+            id: field.handle,
+            name: field.handle,
+            values: value,
+            options: options,
+        }) }}
+    {% else %}
+        {{ forms.checkboxGroup({
+            id: field.handle,
+            name: field.handle,
+            values: value,
+            options: options,
+        }) }}
+    {% endif %}
+{% else %}
+    {% if dropdown %}
+        {{ forms.select({
+            id: field.handle,
+            name: field.handle,
+            value: value,
+            options: options,
+        }) }}
+    {% else %}
+        {{ forms.radioGroup({
+            id: field.handle,
+            name: field.handle,
+            value: value,
+            options: options,
+        }) }}
+    {% endif %}
+{% endif %}

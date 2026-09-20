@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.2.0 - 2026-09-20
+
+### Fixed
+- The author-facing input only offered sections and product types the current user may *edit*, so an author without edit permission on a section could not see it in the field and lost the stored selection on save. The field picks what to list, not what to edit, so every section, entry type, product type and tag group is offered.
+- A stored selection that has since been excluded in the field settings stays visible in the input instead of being dropped silently when the entry is saved.
+- With "Template Value" set to Objects, single-select dropdowns and radio buttons did not pre-select the stored value.
+- The empty-state message shown when a field has nothing allowed was not translatable.
+- The Product Type field instantiated Commerce's service directly; it now goes through the Commerce plugin and offers nothing when Commerce is not installed instead of failing.
+
+### Changed
+- The four field types share one base class and one pair of templates; behaviour and stored settings are unchanged. `getAllowedSections()`, `getAllowedEntryTypes()`, `getAllowedProductTypes()` and `getAllowedGroups()` still work and now proxy `getAllowedItems()`.
+- New icon.
+
 ## 2.1.0 - 2026-08-21
 > ### Downgrade warning
 > Once a field has been saved with the new View Mode or Template Value settings, rolling back to

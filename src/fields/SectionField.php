@@ -3,61 +3,18 @@
 namespace wmd\sectionandproducttype\fields;
 
 use Craft;
-use yii\db\Schema;
-use craft\base\Field;
-use craft\helpers\Json;
-use craft\base\ElementInterface;
-use craft\base\PreviewableFieldInterface;
-use craft\helpers\Html;
-use GraphQL\Type\Definition\Type;
-use wmd\sectionandproducttype\SectionAndProductType;
-use wmd\sectionandproducttype\models\SelectedItems;
-use wmd\sectionandproducttype\assetbundles\FieldSettingsAsset;
 
-
-class SectionField extends Field implements PreviewableFieldInterface
+/**
+ * Selects entry sections.
+ */
+class SectionField extends BaseTypeField
 {
-    /**
-     * @var bool Contains  values for select all sections.
-     */
-    public bool $selectAll = false;
-
-    /**
-     * @var bool Contains multi-select values for sections.
-     */
-    public bool $multiple = false;
-
-    /**
-     * @var array Sections that are allowed for selection in the field settings.
-     */
+    /** @var array Section IDs that may be chosen. */
     public array $allowedSections = [];
 
-    /**
-     * @var array Sections that are allowed for selection in the field settings.
-     */
+    /** @var array Section IDs left out when Select All is on. */
     public array $excludedSections = [];
 
-    /**
-     * @var string Part of handle for selected section by this part
-     */
-    public string $partOfHandle = '';
-
-    /**
-     * @var string How the sections are presented when editing an entry.
-     *
-     * Either `list` (radio buttons or checkboxes) or `dropdown` (a select menu).
-     */
-    public string $viewMode = SectionAndProductType::VIEW_MODE_LIST;
-
-    /**
-     * @var string What the field hands back in templates.
-     *
-     * Either `ids` (the selected section IDs, as this plugin has always done)
-     * or `objects` (a SelectedItems object wrapping the Section models).
-     */
-    public string $valueType = SectionAndProductType::VALUE_TYPE_IDS;
-
-    
     /**
      * @inheritdoc
      */
@@ -69,347 +26,55 @@ class SectionField extends Field implements PreviewableFieldInterface
     /**
      * @inheritdoc
      */
-    public function rules(): array
+    protected static function allowedAttribute(): string
     {
-        $rules = parent::rules();
-        $rules[] = [
-            ['allowedSections'],
-            'validateAllowedSections'
-        ];
-        $rules[] = [
-            ['valueType'],
-            'in',
-            'range' => [
-                SectionAndProductType::VALUE_TYPE_IDS,
-                SectionAndProductType::VALUE_TYPE_OBJECTS,
-            ],
-        ];
-        $rules[] = [
-            ['viewMode'],
-            'in',
-            'range' => [
-                SectionAndProductType::VIEW_MODE_LIST,
-                SectionAndProductType::VIEW_MODE_DROPDOWN,
-            ],
-        ];
-        return $rules;
-    }
-
-    /**
-     * Checking for the existence of sections for selection.
-     *
-     * @param string $attribute Attribute validated.
-     *
-     * @return void
-     */
-    public function validateAllowedSections(string $attribute)
-    {
-        $sections = $this->getSections();
-
-        foreach ($this->allowedSections as $section) {
-            if (!isset($sections[$section])) {
-                $this->addError($attribute, Craft::t('section-and-product-type', 'Invalid section selected.'));
-            }
-        }
-    }
-
-    /**
-     * Return all sections.
-     *
-     * @return array
-     */
-    private function getSections()
-    {
-        $sections = [];
-        $editableSections = Craft::$app->getEntries()->getEditableSections();
-
-        if (!empty($editableSections)) {
-            foreach ($editableSections as $section) {
-                $sections[$section->id] = Craft::t('site', $section->name);
-            }
-        }
-
-        return $sections;
-    }
-    
-    /**
-     * Return all sections handles.
-     *
-     * @return array
-     */
-    private function getSectionsHandles()
-    {
-        $sections = [];
-        $editableSections = Craft::$app->getEntries()->getEditableSections();
-
-        if (!empty($editableSections)) {
-            foreach ($editableSections as $section) {
-                $sections[$section->id] = $section->handle;
-            }
-        }
-
-        return $sections;
-    }
-
-    /**
-     * Return all sections as option arrays carrying each section's handle,
-     * so the field settings can be filtered by name or by handle.
-     *
-     * @return array
-     */
-    private function getSectionOptions(): array
-    {
-        $handles = $this->getSectionsHandles();
-
-        $options = [];
-        foreach ($this->getSections() as $id => $name) {
-            $options[] = [
-                'label' => $name,
-                'value' => $id,
-                'data' => ['handle' => $handles[$id] ?? ''],
-            ];
-        }
-
-        return $options;
+        return 'allowedSections';
     }
 
     /**
      * @inheritdoc
      */
-    public static function dbType(): string
+    protected static function excludedAttribute(): string
     {
-        return Schema::TYPE_STRING;
+        return 'excludedSections';
     }
 
     /**
-     * Return sections without excluded sections
+     * @inheritdoc
+     */
+    protected static function itemWords(): array
+    {
+        return ['singular' => 'section', 'plural' => 'sections'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function loadItems(): array
+    {
+        $items = [];
+        foreach (Craft::$app->getEntries()->getAllSections() as $section) {
+            $items[$section->id] = $section;
+        }
+
+        return $items;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function loadItem(int $id): ?object
+    {
+        return Craft::$app->getEntries()->getSectionById($id);
+    }
+
+    /**
+     * Names of the sections an author may pick from, keyed by ID.
      *
-     * @return array
+     * @deprecated in 2.2.0. Use getAllowedItems().
      */
     public function getAllowedSections(): array
     {
-        $sections = $this->getSections();
-        $excludedSections = $this->excludedSections;
-
-        if (!empty($excludedSections)  && !empty($this->selectAll) ) {
-            $excludedSections = array_map(function($value) {
-                return intval($value);
-            }, $excludedSections);
-
-            foreach ($excludedSections as $value) {
-                unset($sections[$value]);
-            }
-        }
-
-        return $sections;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function normalizeValue($value, ?ElementInterface $element = null): Mixed
-    {
-        if (is_string($value)) {
-            $value = Json::decodeIfJson($value);
-        }
-
-        if (is_int($value) && $this->multiple) {
-            $value = [$value];
-        } else if (is_array($value) && !$this->multiple && count($value) == 1) {
-            $value = intval($value[0]);
-        }
-
-        if (is_array($value)) {
-            foreach ($value as $key => $id) {
-                $value[$key] = intval($id);
-            }
-        }
-
-        if ($this->valueType === SectionAndProductType::VALUE_TYPE_OBJECTS) {
-            return $this->toSelectedItems($value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * Wrap the selected IDs in a SelectedItems object.
-     *
-     * @param mixed $value
-     *
-     * @return SelectedItems
-     */
-    private function toSelectedItems($value): SelectedItems
-    {
-        $sections = [];
-
-        foreach ($this->valueIds($value) as $id) {
-            $section = Craft::$app->getEntries()->getSectionById($id);
-            if ($section) {
-                $sections[] = $section;
-            }
-        }
-
-        return new SelectedItems($sections);
-    }
-
-    /**
-     * Reduce any shape this field's value can take to a list of integer IDs.
-     *
-     * @param mixed $value
-     *
-     * @return array
-     */
-    private function valueIds($value): array
-    {
-        if ($value instanceof SelectedItems) {
-            return $value->ids();
-        }
-
-        if (!is_array($value)) {
-            $value = ($value === null || $value === '') ? [] : [$value];
-        }
-
-        return array_map('intval', array_filter($value, static fn($id) => $id !== '' && $id !== null));
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getPreviewHtml(mixed $value, ElementInterface $element): string
-    {
-        $sections = $this->getSections();
-
-        $names = [];
-        foreach ($this->valueIds($value) as $id) {
-            if (isset($sections[$id])) {
-                $names[] = $sections[$id];
-            }
-        }
-
-        return Html::encode(implode(', ', $names));
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getContentGqlType(): Type|array
-    {
-        return [
-            'name' => $this->handle,
-            'type' => $this->multiple ? Type::listOf(Type::int()) : Type::int(),
-            'resolve' => function($source) {
-                $ids = $this->valueIds($source->getFieldValue($this->handle));
-
-                return $this->multiple ? $ids : ($ids[0] ?? null);
-            },
-        ];
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getContentGqlMutationArgumentType(): Type|array
-    {
-        return $this->multiple ? Type::listOf(Type::int()) : Type::int();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function isValueEmpty(mixed $value, ElementInterface $element): bool
-    {
-        if ($value instanceof SelectedItems) {
-            return $value->isEmpty();
-        }
-
-        return parent::isValueEmpty($value, $element);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function serializeValue($value, ?ElementInterface $element = null): Mixed
-    {
-        if ($value instanceof SelectedItems) {
-            $ids = $value->ids();
-            $value = $this->multiple ? $ids : ($ids[0] ?? '');
-        }
-
-        if (is_array($value)) {
-            foreach ($value as $key => $id) {
-                $value[$key] = intval($id);
-            }
-        }
-
-        return Json::encode($value);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getSettingsHtml(): ?string
-    {
-        $view = Craft::$app->getView();
-        $view->registerAssetBundle(FieldSettingsAsset::class);
-
-        return $view->renderTemplate(
-            'section-and-product-type/_components/fields/section/_settings',
-            [
-                'field' => $this,
-                'sections' => $this->getSections(),
-                'sectionOptions' => $this->getSectionOptions(),
-                'viewModes' => SectionAndProductType::viewModeOptions(),
-                'valueTypes' => SectionAndProductType::valueTypeOptions(),
-                'selectAll' => $this->selectAll,
-                'partOfHandle' => $this->partOfHandle,
-            ]
-        );
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getInputHtml($value, ElementInterface $element = null): string
-    {
-        if (empty($this->allowedSections) && empty($this->selectAll) && empty($this->partOfHandle)) {
-            return 'You have not selected any section for selection, select in the field settings.';
-        }
-
-        $sections = $this->getSections();
-        $allowSectionsConfig = $this->allowedSections;
-
-        if ($this->selectAll) {
-            if (is_array($this->excludedSections)) {
-                foreach ($this->excludedSections as $sectionId) {
-                    unset($sections[$sectionId]);
-                }
-            }
-            $allowSectionsConfig = array_keys($sections);
-        } else if(!empty($this->partOfHandle)) {
-            foreach ($this->getSectionsHandles() as $id => $handle) {
-                if (stripos($handle, $this->partOfHandle) !== false
-                    && !in_array($id, $allowSectionsConfig)
-                    && !in_array($id, $this->excludedSections)) {
-                    $allowSectionsConfig[] = $id;
-                }
-            }
-        }
-
-        $allowSections = array_flip($allowSectionsConfig);
-        $allowSections[''] = true;
-        if (!$this->multiple && !$this->required) {
-            $sections = ['' => Craft::t('app', 'None')] + $sections;
-        }
-        $allowSections = array_intersect_key($sections, $allowSections);
-
-        return Craft::$app->getView()->renderTemplate(
-            'section-and-product-type/_components/fields/section/_input', [
-                'field' => $this,
-                'value' => $value,
-                'sections' => $allowSections,
-                'dropdown' => $this->viewMode === SectionAndProductType::VIEW_MODE_DROPDOWN,
-            ]
-        );
+        return $this->getAllowedItems();
     }
 }

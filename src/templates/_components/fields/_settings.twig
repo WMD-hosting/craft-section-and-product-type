@@ -1,0 +1,90 @@
+{# Shared settings for all four field types. `words` carries the singular/plural noun. #}
+{% import '_includes/forms' as forms %}
+
+{% set t = 'section-and-product-type' %}
+{% set singular = words.singular %}
+{% set plural = words.plural %}
+{% set filterId = "optionFilter#{random()}" %}
+{% set optionListsId = "optionLists#{random()}" %}
+
+{{ forms.checkboxField({
+    label: 'Multiple Select'|t(t),
+    instructions: 'Let the author pick more than one {singular}.'|t(t, { singular: singular }),
+    name: 'multiple',
+    checked: field.multiple,
+}) }}
+
+<hr>
+
+{{ forms.selectField({
+    label: 'View Mode'|t(t),
+    instructions: 'How the {plural} are presented when editing an entry. Choose Dropdown when there are many to pick from.'|t(t, { plural: plural }),
+    id: 'viewMode',
+    name: 'viewMode',
+    value: field.viewMode,
+    options: viewModes,
+}) }}
+
+<hr>
+
+{{ forms.selectField({
+    label: 'Template Value'|t(t),
+    instructions: 'What the field hands back in templates. IDs returns the selected IDs. Objects returns an object whose all(), ids(), handles() and names() methods give you the {plural} themselves.'|t(t, { plural: plural }),
+    id: 'valueType',
+    name: 'valueType',
+    value: field.valueType,
+    options: valueTypes,
+}) }}
+
+<hr>
+
+{{ forms.checkboxField({
+    label: 'Select All'|t(t),
+    instructions: 'Make every {singular} available, minus the exclude list below.'|t(t, { singular: singular }),
+    name: 'selectAll',
+    checked: field.selectAll,
+}) }}
+
+<hr>
+
+{{ forms.textField({
+    id: 'partOfHandle',
+    label: 'Select By Text In Handle'|t(t),
+    instructions: 'Also allow every {singular} whose handle contains this text.'|t(t, { singular: singular }),
+    name: 'partOfHandle',
+    value: field.partOfHandle,
+}) }}
+
+<hr>
+
+{{ forms.textField({
+    id: filterId,
+    label: 'Filter The Lists Below'|t(t),
+    instructions: 'Narrows the two lists to the {plural} whose name or handle contains this text. It only changes what is shown and is not saved with the field.'|t(t, { plural: plural }),
+    placeholder: 'Search {plural}'|t(t, { plural: plural }),
+}) }}
+
+<div id="{{ optionListsId }}">
+    {{ forms.checkboxGroupField({
+        label: 'Allowed'|t(t),
+        instructions: 'The {plural} an author may choose. Ignored while Select All is on.'|t(t, { plural: plural }),
+        name: allowedAttribute,
+        values: allowedValues,
+        options: options,
+    }) }}
+
+    <hr>
+
+    {{ forms.checkboxGroupField({
+        label: 'Excluded'|t(t),
+        instructions: 'Left out while Select All is on, and never added by the handle text.'|t(t),
+        id: excludedAttribute,
+        name: excludedAttribute,
+        values: excludedValues,
+        options: options,
+    }) }}
+</div>
+
+{% js %}
+new Craft.SectionAndProductType.OptionFilter('#{{ filterId|namespaceInputId|e('js') }}', '#{{ optionListsId|namespaceInputId|e('js') }}');
+{% endjs %}
