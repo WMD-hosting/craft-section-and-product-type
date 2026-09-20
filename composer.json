@@ -2,7 +2,7 @@
     "name": "wmd/section-and-product-type",
     "description": "Craft CMS field types for selecting sections, entry types, Commerce product types and tag groups. Built for page builders and dynamic content listings.",
     "type": "craft-plugin",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "keywords": [
         "craft",
         "cms",
@@ -19,8 +19,8 @@
         "page builder"
     ],
     "support": {
-        "docs": "https://github.com/wmdhosting/craft3-section-and-product-type-field/blob/main/README.md",
-        "issues": "https://github.com/wmdhosting/craft3-section-and-product-type-field/issues"
+        "docs": "https://github.com/WMD-hosting/craft-section-and-product-type/blob/main/README.md",
+        "issues": "https://github.com/WMD-hosting/craft-section-and-product-type/issues"
     },
     "license": "MIT",
     "authors": [
@@ -43,8 +43,8 @@
         "handle": "section-and-product-type",
         "developer": "WMD Hosting",
         "developerUrl": "https://wmd.hosting/",
-        "documentationUrl": "https://github.com/wmdhosting/craft3-section-and-product-type-field/blob/main/README.md",
-        "changelogUrl": "https://raw.githubusercontent.com/wmdhosting/craft3-section-and-product-type-field/main/CHANGELOG.md",
+        "documentationUrl": "https://github.com/WMD-hosting/craft-section-and-product-type/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/WMD-hosting/craft-section-and-product-type/main/CHANGELOG.md",
         "class": "wmd\\sectionandproducttype\\SectionAndProductType"
     }
 }

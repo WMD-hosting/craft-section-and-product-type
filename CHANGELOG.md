@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.2.1 - 2026-09-20
+
+### Changed
+- The repository moved to `WMD-hosting/craft-section-and-product-type`; the old `craft3-...` URL redirects. Support and documentation links updated.
+
 ## 2.2.0 - 2026-09-20
 
 ### Fixed

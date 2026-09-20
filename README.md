@@ -12,10 +12,6 @@ Instead of relating to specific entries, these fields let an author pick a *sect
 query. That makes them a good fit for page builders and "list the latest N from X" blocks,
 where the editor decides *what kind* of content a block pulls in.
 
-> **Craft 5.** This plugin supports Craft CMS 5. The repository is named `craft3-...` for
-> historical reasons only, dating back to its first release in 2020. See
-> [Version support](#version-support) for the full history.
-
 ## Field types
 
 | Field type | Selects | Requires |
