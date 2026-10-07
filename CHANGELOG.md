@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.2.2 - 2026-10-07
+
+### Fixed
+- Saving a field no longer drops its Multiple, Select All, Part of handle, View mode and Value type settings (since 2.2.0 they lived on an abstract base class, which Craft leaves out of saved settings).
+
 ## 2.2.1 - 2026-09-20
 
 ### Changed

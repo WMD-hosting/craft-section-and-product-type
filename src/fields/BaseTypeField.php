@@ -79,6 +79,24 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
 
     /**
      * @inheritdoc
+     *
+     * Craft only saves public properties declared outside abstract classes, so the shared
+     * settings declared here must be listed, or every field save drops them.
+     */
+    public function settingsAttributes(): array
+    {
+        return array_values(array_unique([
+            ...parent::settingsAttributes(),
+            'selectAll',
+            'multiple',
+            'partOfHandle',
+            'viewMode',
+            'valueType',
+        ]));
+    }
+
+    /**
+     * @inheritdoc
      */
     public function rules(): array
     {
