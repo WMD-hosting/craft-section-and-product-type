@@ -10,7 +10,6 @@ use JsonSerializable;
 use Stringable;
 use Traversable;
 
-
 /**
  * The value returned by this plugin's fields when their Template Value setting
  * is set to `objects`.

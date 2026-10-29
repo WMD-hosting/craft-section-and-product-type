@@ -5,7 +5,6 @@ namespace wmd\sectionandproducttype\assetbundles;
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset;
 
-
 /**
  * Assets for the Section, Product Type and Tag Group field settings screens.
  */

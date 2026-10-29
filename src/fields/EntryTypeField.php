@@ -9,10 +9,10 @@ use Craft;
  */
 class EntryTypeField extends BaseTypeField
 {
-    /** @var array Entry type IDs that may be chosen. */
+    /** @var array Entry type UIDs that may be chosen (IDs in fields saved before 2.3.0). */
     public array $allowedEntryTypes = [];
 
-    /** @var array Entry type IDs left out when Select All is on. */
+    /** @var array Entry type UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedEntryTypes = [];
 
     /**

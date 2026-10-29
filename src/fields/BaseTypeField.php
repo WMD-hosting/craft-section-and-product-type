@@ -10,6 +10,7 @@ use craft\helpers\Html;
 use craft\helpers\Json;
 use GraphQL\Type\Definition\Type;
 use wmd\sectionandproducttype\assetbundles\FieldSettingsAsset;
+use wmd\sectionandproducttype\helpers\ItemReferences;
 use wmd\sectionandproducttype\models\SelectedItems;
 use wmd\sectionandproducttype\SectionAndProductType;
 use yii\db\Schema;
@@ -21,10 +22,15 @@ use yii\db\Schema;
  * exclude lists (they differ per type for historical reasons and are part of
  * project config, so they stay), says how to load its items, and provides the
  * words used in the control panel.
+ *
+ * The lists are saved as UIDs, because project config travels between installs
+ * and an ID names a different item on each. Lists saved before 2.3.0 hold IDs,
+ * which still resolve on the install that reads them; the next save of the
+ * field writes them as UIDs. See ItemReferences.
  */
 abstract class BaseTypeField extends Field implements PreviewableFieldInterface
 {
-    /** @var bool Make every item available, minus the exclude list. */
+    /** @var bool Make every item available. The exclude list still applies. */
     public bool $selectAll = false;
 
     /** @var bool Let the author pick more than one item. */
@@ -51,7 +57,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
 
     /**
      * Every item this field can offer, keyed by ID. Each item exposes `id`,
-     * `name` and `handle`.
+     * `uid`, `name` and `handle`.
      *
      * @return array<int, object>
      */
@@ -97,6 +103,26 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
 
     /**
      * @inheritdoc
+     *
+     * The allow and exclude lists are written as UIDs, so project config means the
+     * same items on every install.
+     */
+    public function getSettings(): array
+    {
+        $settings = parent::getSettings();
+        $uids = $this->uids();
+
+        foreach ([static::allowedAttribute(), static::excludedAttribute()] as $attribute) {
+            if (array_key_exists($attribute, $settings)) {
+                $settings[$attribute] = ItemReferences::toUids((array)$settings[$attribute], $uids);
+            }
+        }
+
+        return $settings;
+    }
+
+    /**
+     * @inheritdoc
      */
     public function rules(): array
     {
@@ -117,41 +143,56 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
     }
 
     /**
-     * Every ID in the allow list must still exist.
+     * Every item in the allow list must exist on this install.
      */
     public function validateAllowedItems(string $attribute): void
     {
-        $items = $this->items();
-
-        foreach ((array)$this->$attribute as $id) {
-            if (!isset($items[(int)$id])) {
-                $this->addError($attribute, Craft::t(
-                    'section-and-product-type',
-                    'Invalid {singular} selected.',
-                    ['singular' => static::itemWords()['singular']]
-                ));
-            }
+        if (ItemReferences::unresolved((array)$this->$attribute, $this->uids()) === []) {
+            return;
         }
+
+        $this->addError($attribute, Craft::t(
+            'section-and-product-type',
+            'Invalid {singular} selected.',
+            ['singular' => static::itemWords()['singular']]
+        ));
     }
 
     /**
-     * The allow list, as integer IDs.
+     * The allow list, as the IDs of the items this install has.
      *
      * @return int[]
      */
     public function allowedIds(): array
     {
-        return array_map('intval', (array)$this->{static::allowedAttribute()});
+        return ItemReferences::toIds((array)$this->{static::allowedAttribute()}, $this->uids());
     }
 
     /**
-     * The exclude list, as integer IDs.
+     * The exclude list, as the IDs of the items this install has.
      *
      * @return int[]
      */
     public function excludedIds(): array
     {
-        return array_map('intval', (array)$this->{static::excludedAttribute()});
+        return ItemReferences::toIds((array)$this->{static::excludedAttribute()}, $this->uids());
+    }
+
+    /**
+     * UIDs of every item, keyed by ID.
+     *
+     * @return array<int, string>
+     *
+     * @since 2.3.0
+     */
+    protected function uids(): array
+    {
+        $uids = [];
+        foreach ($this->loadItems() as $id => $item) {
+            $uids[(int)$id] = (string)$item->uid;
+        }
+
+        return $uids;
     }
 
     /**
@@ -185,18 +226,20 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
     }
 
     /**
-     * Items as option arrays carrying the handle, so the settings lists can
-     * be filtered by name or handle.
+     * Items as option arrays for the settings lists: the UID as value (that is
+     * what the lists save), and the handle, so the lists can be filtered by
+     * name or handle.
      */
     protected function options(): array
     {
         $handles = $this->handles();
+        $uids = $this->uids();
         $options = [];
 
         foreach ($this->items() as $id => $name) {
             $options[] = [
                 'label' => $name,
-                'value' => $id,
+                'value' => $uids[$id] ?? (string)$id,
                 'data' => ['handle' => $handles[$id] ?? ''],
             ];
         }
@@ -205,35 +248,34 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
     }
 
     /**
-     * Names of the items an author may pick from, keyed by ID: the allow list,
-     * plus handle matches, or everything minus the exclude list.
+     * Names of the items an author may pick from, keyed by ID: everything with
+     * Select All on, otherwise the allow list plus the handle matches; minus the
+     * exclude list either way.
      *
      * @return array<int, string>
      */
     public function getAllowedItems(): array
     {
         $items = $this->items();
+        $handleMatches = [];
 
-        if ($this->selectAll) {
-            foreach ($this->excludedIds() as $id) {
-                unset($items[$id]);
-            }
-
-            return $items;
-        }
-
-        $allowed = $this->allowedIds();
-
-        if ($this->partOfHandle !== '') {
-            $excluded = $this->excludedIds();
+        if (!$this->selectAll && $this->partOfHandle !== '') {
             foreach ($this->handles() as $id => $handle) {
-                if (stripos($handle, $this->partOfHandle) !== false && !in_array($id, $excluded, true)) {
-                    $allowed[] = $id;
+                if (stripos($handle, $this->partOfHandle) !== false) {
+                    $handleMatches[] = $id;
                 }
             }
         }
 
-        return array_intersect_key($items, array_flip($allowed));
+        $ids = ItemReferences::availableIds(
+            all: array_keys($items),
+            selectAll: $this->selectAll,
+            allowed: $this->allowedIds(),
+            handleMatches: $handleMatches,
+            excluded: $this->excludedIds(),
+        );
+
+        return array_intersect_key($items, array_flip($ids));
     }
 
     /**
@@ -334,14 +376,15 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
     {
         $view = Craft::$app->getView();
         $view->registerAssetBundle(FieldSettingsAsset::class);
+        $uids = $this->uids();
 
         return $view->renderTemplate('section-and-product-type/_components/fields/_settings', [
             'field' => $this,
             'words' => static::itemWords(),
             'allowedAttribute' => static::allowedAttribute(),
             'excludedAttribute' => static::excludedAttribute(),
-            'allowedValues' => $this->selectAll ? [true] : $this->allowedIds(),
-            'excludedValues' => $this->excludedIds(),
+            'allowedValues' => $this->selectAll ? [true] : ItemReferences::toUids($this->allowedIds(), $uids),
+            'excludedValues' => ItemReferences::toUids($this->excludedIds(), $uids),
             'options' => $this->options(),
             'viewModes' => SectionAndProductType::viewModeOptions(),
             'valueTypes' => SectionAndProductType::valueTypeOptions(),

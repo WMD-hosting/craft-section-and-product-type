@@ -50,7 +50,13 @@ Every field type shares the same settings.
 | **Template Value** | What the field returns in templates: `IDs` (default) or `Objects`. See [Template value](#template-value-ids-or-objects). |
 | **Select All** | Makes everything available for selection, minus anything in the exclude list. |
 | **Select By Text In Handle** | Also allows anything whose handle contains this text, for example `category`. |
-| **Allowed / Exclude** | The explicit allow and exclude lists. A filter box above them narrows long lists by name or handle. |
+| **Allowed / Excluded** | The explicit allow and exclude lists. Excluded always wins: an excluded option is never offered, whether Select All, the Allowed list or the handle text would offer it. A filter box above them narrows long lists by name or handle. |
+
+The allow and exclude lists are saved in project config as UIDs, so a field means the same
+sections (or entry types, product types, tag groups) on every environment. Fields saved before
+2.3.0 hold numeric IDs; those keep working on the install that saved them and are written as
+UIDs the next time the field is saved. Field *values* on entries are content, not project
+config, and stay IDs.
 
 Choose `Dropdown` when a site has enough sections, entry types or tag groups that a wall of
 radio buttons becomes hard to scan. The stored value is identical in both view modes, so you

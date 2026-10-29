@@ -3,17 +3,14 @@
 namespace wmd\sectionandproducttype;
 
 use Craft;
-use yii\base\Event;
 use craft\base\Plugin;
-use craft\services\Fields;
-use craft\services\Plugins;
-use craft\events\PluginEvent;
 use craft\events\RegisterComponentTypesEvent;
+use craft\services\Fields;
+use wmd\sectionandproducttype\fields\EntryTypeField;
+use wmd\sectionandproducttype\fields\ProductTypeField;
 use wmd\sectionandproducttype\fields\SectionField;
 use wmd\sectionandproducttype\fields\TagGroupField;
-use wmd\sectionandproducttype\fields\ProductTypeField;
-use wmd\sectionandproducttype\fields\EntryTypeField;
-
+use yii\base\Event;
 
 class SectionAndProductType extends Plugin
 {
@@ -68,7 +65,7 @@ class SectionAndProductType extends Plugin
         Event::on(
             Fields::class,
             Fields::EVENT_REGISTER_FIELD_TYPES,
-            function (RegisterComponentTypesEvent $event) {
+            function(RegisterComponentTypesEvent $event) {
                 $event->types[] = SectionField::class;
                 $event->types[] = ProductTypeField::class;
                 $event->types[] = TagGroupField::class;

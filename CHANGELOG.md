@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.3.0 - 2026-10-29
+
+### Changed
+- The Allowed and Excluded lists of all four field types are saved as UIDs instead of numeric IDs. Field settings live in project config, which travels between environments, and the same ID names a different section (entry type, product type, tag group) on each install, so a field could offer the wrong sections after a deploy. Fields saved with IDs keep working: the IDs resolve on the install that reads them, and the next save of the field writes UIDs. An ID the install no longer has is dropped on save instead of being carried to the next environment.
+- Excluded now applies in every mode. Before, it only applied with Select All on (and to the handle-text matches), so an exclusion next to an explicit Allowed list did nothing. Fields with Select All on behave as before; a field that both allows and excludes the same item now leaves it out.
+
+### Added
+- PHPUnit, ECS and PHPStan dev setup (`composer test`, `composer check-cs`, `composer phpstan`).
+
+### Unchanged
+- Field values on entries are content, not project config, and are still stored as IDs.
+
 ## 2.2.2 - 2026-10-07
 
 ### Fixed

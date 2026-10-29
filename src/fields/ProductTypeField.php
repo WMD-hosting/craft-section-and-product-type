@@ -10,10 +10,10 @@ use craft\commerce\Plugin as Commerce;
  */
 class ProductTypeField extends BaseTypeField
 {
-    /** @var array Product type IDs that may be chosen. */
+    /** @var array Product type UIDs that may be chosen (IDs in fields saved before 2.3.0). */
     public array $allowProductTypes = [];
 
-    /** @var array Product type IDs left out when Select All is on. */
+    /** @var array Product type UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedProductTypes = [];
 
     /**

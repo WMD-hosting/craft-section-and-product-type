@@ -9,10 +9,10 @@ use Craft;
  */
 class SectionField extends BaseTypeField
 {
-    /** @var array Section IDs that may be chosen. */
+    /** @var array Section UIDs that may be chosen (IDs in fields saved before 2.3.0). */
     public array $allowedSections = [];
 
-    /** @var array Section IDs left out when Select All is on. */
+    /** @var array Section UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedSections = [];
 
     /**

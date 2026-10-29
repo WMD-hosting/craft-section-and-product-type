@@ -9,10 +9,10 @@ use Craft;
  */
 class TagGroupField extends BaseTypeField
 {
-    /** @var array Tag group IDs that may be chosen. */
+    /** @var array Tag group UIDs that may be chosen (IDs in fields saved before 2.3.0). */
     public array $allowedGroups = [];
 
-    /** @var array Tag group IDs left out when Select All is on. */
+    /** @var array Tag group UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedGroups = [];
 
     /**

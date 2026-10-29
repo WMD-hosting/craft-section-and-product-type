@@ -32,9 +32,21 @@
         "craftcms/cms": "^5.0.0",
         "php": "^8.2"
     },
+    "require-dev": {
+        "craftcms/commerce": "^5.0",
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^10.5"
+    },
     "autoload": {
         "psr-4": {
             "wmd\\sectionandproducttype\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "wmd\\sectionandproducttype\\tests\\": "tests/"
         }
     },
     "extra": {
@@ -45,5 +57,20 @@
         "documentationUrl": "https://github.com/WMD-hosting/craft-section-and-product-type/blob/main/README.md",
         "changelogUrl": "https://raw.githubusercontent.com/WMD-hosting/craft-section-and-product-type/main/CHANGELOG.md",
         "class": "wmd\\sectionandproducttype\\SectionAndProductType"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "check-cs": "ecs check --ansi",
+        "fix-cs": "ecs check --ansi --fix",
+        "phpstan": "phpstan --memory-limit=1G"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "craftcms/plugin-installer": false,
+            "yiisoft/yii2-composer": true
+        }
     }
 }
