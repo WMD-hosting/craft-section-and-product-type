@@ -2,122 +2,80 @@
 
 namespace wmd\sectionandproducttype;
 
-use Craft;
-use craft\base\Plugin;
-use craft\events\RegisterComponentTypesEvent;
-use craft\services\Fields;
+use CraftCms\Cms\Plugin\Plugin;
 use wmd\sectionandproducttype\fields\EntryTypeField;
 use wmd\sectionandproducttype\fields\ProductTypeField;
 use wmd\sectionandproducttype\fields\SectionField;
-use wmd\sectionandproducttype\fields\TagGroupField;
-use yii\base\Event;
 
+use function CraftCms\Cms\t;
+
+/**
+ * Field types that select parts of the content model: sections, entry types
+ * and Commerce product types.
+ *
+ * @author WMD Hosting
+ * @since 1.0.0
+ */
 class SectionAndProductType extends Plugin
 {
-    /**
-     * @var string View mode that renders a field's options as radio buttons or checkboxes.
-     */
+    // Const Properties
+    // =========================================================================
+
+    /** View mode that renders a field's options as radio buttons or checkboxes. */
     public const VIEW_MODE_LIST = 'list';
 
-    /**
-     * @var string View mode that renders a field's options as a select menu.
-     */
+    /** View mode that renders a field's options as a select menu. */
     public const VIEW_MODE_DROPDOWN = 'dropdown';
 
-    /**
-     * @var string Template value that returns the selected IDs, as this plugin has always done.
-     */
+    /** Template value that returns the selected IDs, as this plugin has always done. */
     public const VALUE_TYPE_IDS = 'ids';
 
-    /**
-     * @var string Template value that returns a SelectedItems object wrapping the selected models.
-     */
+    /** Template value that returns a SelectedItems object wrapping the selected models. */
     public const VALUE_TYPE_OBJECTS = 'objects';
 
-    /**
-     * @var SectionAndProductType
-     */
-    public static $plugin;
+    /** Translation category of the plugin's own strings. */
+    public const T9N = 'section-and-product-type';
+
+    // Public Properties
+    // =========================================================================
+
+    public string $schemaVersion = '3.0.0';
+
+    // Protected Properties
+    // =========================================================================
+
+    protected array $fieldTypes = [
+        SectionField::class,
+        EntryTypeField::class,
+        ProductTypeField::class,
+    ];
+
+    // Public Methods
+    // =========================================================================
 
     /**
-     * @var string
-     */
-    public string $schemaVersion = '2.0.8';
-
-    /**
-     * @var bool
-     */
-    public bool $hasCpSettings = false;
-
-    /**
-     * @var bool
-     */
-    public bool $hasCpSection = false;
-
-    /**
-     * @inheritdoc
-     */
-    public function init()
-    {
-        parent::init();
-        self::$plugin = $this;
-
-        Event::on(
-            Fields::class,
-            Fields::EVENT_REGISTER_FIELD_TYPES,
-            function(RegisterComponentTypesEvent $event) {
-                $event->types[] = SectionField::class;
-                $event->types[] = ProductTypeField::class;
-                $event->types[] = TagGroupField::class;
-                $event->types[] = EntryTypeField::class;
-            }
-        );
-
-        Craft::info(
-            Craft::t(
-                'section-and-product-type',
-                '{name} plugin loaded',
-                ['name' => $this->name]
-            ),
-            __METHOD__
-        );
-    }
-
-    /**
-     * Return the view mode options offered by every field type of this plugin.
+     * The view mode options offered by every field type of this plugin.
      *
-     * @return array
+     * @return list<array{label: string, value: string}>
      */
     public static function viewModeOptions(): array
     {
         return [
-            [
-                'label' => Craft::t('section-and-product-type', 'List'),
-                'value' => self::VIEW_MODE_LIST,
-            ],
-            [
-                'label' => Craft::t('section-and-product-type', 'Dropdown'),
-                'value' => self::VIEW_MODE_DROPDOWN,
-            ],
+            ['label' => t('List', category: self::T9N), 'value' => self::VIEW_MODE_LIST],
+            ['label' => t('Dropdown', category: self::T9N), 'value' => self::VIEW_MODE_DROPDOWN],
         ];
     }
 
     /**
-     * Return the template value options offered by every field type of this plugin.
+     * The template value options offered by every field type of this plugin.
      *
-     * @return array
+     * @return list<array{label: string, value: string}>
      */
     public static function valueTypeOptions(): array
     {
         return [
-            [
-                'label' => Craft::t('section-and-product-type', 'IDs'),
-                'value' => self::VALUE_TYPE_IDS,
-            ],
-            [
-                'label' => Craft::t('section-and-product-type', 'Objects'),
-                'value' => self::VALUE_TYPE_OBJECTS,
-            ],
+            ['label' => t('IDs', category: self::T9N), 'value' => self::VALUE_TYPE_IDS],
+            ['label' => t('Objects', category: self::T9N), 'value' => self::VALUE_TYPE_OBJECTS],
         ];
     }
 }

@@ -2,8 +2,11 @@
 
 namespace wmd\sectionandproducttype\fields;
 
-use Craft;
-use craft\commerce\Plugin as Commerce;
+use CraftCms\Cms\Support\Facades\Plugins;
+use CraftCms\Commerce\Product\ProductType\ProductTypes;
+use Override;
+
+use function CraftCms\Cms\t;
 
 /**
  * Selects Craft Commerce product types. Offers nothing when Commerce is not installed.
@@ -16,41 +19,31 @@ class ProductTypeField extends BaseTypeField
     /** @var array Product type UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedProductTypes = [];
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     public static function displayName(): string
     {
-        return Craft::t('section-and-product-type', 'Product Type');
+        return t('Product Type', category: 'section-and-product-type');
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function allowedAttribute(): string
     {
         return 'allowProductTypes';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function excludedAttribute(): string
     {
         return 'excludedProductTypes';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function itemWords(): array
     {
         return ['singular' => 'product type', 'plural' => 'product types'];
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItems(): array
     {
         $commerce = $this->commerce();
@@ -59,31 +52,30 @@ class ProductTypeField extends BaseTypeField
         }
 
         $items = [];
-        foreach ($commerce->getProductTypes()->getAllProductTypes() as $productType) {
+        foreach ($commerce->getAllProductTypes() as $productType) {
             $items[$productType->id] = $productType;
         }
 
         return $items;
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItem(int $id): ?object
     {
-        return $this->commerce()?->getProductTypes()->getProductTypeById($id);
+        return $this->commerce()?->getProductTypeById($id);
     }
 
     /**
-     * The Commerce plugin, when it is installed and enabled.
+     * Commerce's product type service, when Commerce is installed and enabled.
+     * Without it the field offers nothing instead of failing.
      */
-    private function commerce(): ?Commerce
+    private function commerce(): ?ProductTypes
     {
-        if (!class_exists(Commerce::class)) {
+        if (!class_exists(ProductTypes::class) || !Plugins::isPluginEnabled('commerce')) {
             return null;
         }
 
-        return Commerce::getInstance();
+        return app(ProductTypes::class);
     }
 
     /**

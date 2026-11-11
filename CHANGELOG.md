@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 3.0.0-beta.1 - Unreleased
+
+### Changed
+- Requires Craft CMS 6 and PHP 8.5. The plugin runs on Craft 6's Laravel plugin base; the 2.x line stays on Craft 5.
+- Field inputs and settings use Craft 6's UI kit. List view renders radios or checkboxes, Dropdown a select or a searchable multi-select. The Allowed and Excluded settings are searchable multi-selects by name or handle, replacing the filter box.
+- Values are stored as JSON integers (an ID, or a list of IDs with Multiple Select). JSON strings saved by 2.x are still read.
+- A single-select field always offers None, because Craft 6 keeps "required" on the field layout; a required field still fails validation when empty.
+
+### Added
+- MCP input schema: each field lists the IDs an author may pick, with names and handles.
+- Element validation rejects an ID that names no section, entry type or product type.
+- The "nothing allowed yet" notice shows as the field's warning.
+
+### Removed
+- The Tag Group field type. Craft 6 has no tags.
+- The Craft 5 asset bundle and Twig templates.
+
 ## 2.3.0 - 2026-10-29
 
 ### Changed

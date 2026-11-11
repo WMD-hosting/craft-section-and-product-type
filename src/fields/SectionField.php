@@ -2,7 +2,10 @@
 
 namespace wmd\sectionandproducttype\fields;
 
-use Craft;
+use CraftCms\Cms\Support\Facades\Sections;
+use Override;
+
+use function CraftCms\Cms\t;
 
 /**
  * Selects entry sections.
@@ -15,57 +18,45 @@ class SectionField extends BaseTypeField
     /** @var array Section UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedSections = [];
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     public static function displayName(): string
     {
-        return Craft::t('section-and-product-type', 'Section');
+        return t('Section', category: 'section-and-product-type');
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function allowedAttribute(): string
     {
         return 'allowedSections';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function excludedAttribute(): string
     {
         return 'excludedSections';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function itemWords(): array
     {
         return ['singular' => 'section', 'plural' => 'sections'];
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItems(): array
     {
         $items = [];
-        foreach (Craft::$app->getEntries()->getAllSections() as $section) {
+        foreach (Sections::getAllSections() as $section) {
             $items[$section->id] = $section;
         }
 
         return $items;
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItem(int $id): ?object
     {
-        return Craft::$app->getEntries()->getSectionById($id);
+        return Sections::getSectionById($id);
     }
 
     /**

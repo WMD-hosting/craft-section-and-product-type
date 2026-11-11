@@ -2,7 +2,10 @@
 
 namespace wmd\sectionandproducttype\fields;
 
-use Craft;
+use CraftCms\Cms\Support\Facades\EntryTypes;
+use Override;
+
+use function CraftCms\Cms\t;
 
 /**
  * Selects entry types. Craft 5 decoupled these from sections.
@@ -15,57 +18,45 @@ class EntryTypeField extends BaseTypeField
     /** @var array Entry type UIDs never offered (IDs in fields saved before 2.3.0). */
     public array $excludedEntryTypes = [];
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     public static function displayName(): string
     {
-        return Craft::t('section-and-product-type', 'Entry Type');
+        return t('Entry Type', category: 'section-and-product-type');
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function allowedAttribute(): string
     {
         return 'allowedEntryTypes';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function excludedAttribute(): string
     {
         return 'excludedEntryTypes';
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected static function itemWords(): array
     {
         return ['singular' => 'entry type', 'plural' => 'entry types'];
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItems(): array
     {
         $items = [];
-        foreach (Craft::$app->getEntries()->getAllEntryTypes() as $entryType) {
+        foreach (EntryTypes::getAllEntryTypes() as $entryType) {
             $items[$entryType->id] = $entryType;
         }
 
         return $items;
     }
 
-    /**
-     * @inheritdoc
-     */
+    #[Override]
     protected function loadItem(int $id): ?object
     {
-        return Craft::$app->getEntries()->getEntryTypeById($id);
+        return EntryTypes::getEntryTypeById($id);
     }
 
     /**

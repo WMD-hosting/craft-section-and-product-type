@@ -1,14 +1,14 @@
 # Section + Entry type + Product Type
 
-[![Craft CMS](https://img.shields.io/badge/Craft%20CMS-5.x-E5422B)](https://craftcms.com/)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
+[![Craft CMS](https://img.shields.io/badge/Craft%20CMS-6.x-E5422B)](https://craftcms.com/)
+[![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4)](https://www.php.net/)
 [![Packagist](https://img.shields.io/packagist/v/wmd/section-and-product-type)](https://packagist.org/packages/wmd/section-and-product-type)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
 Craft CMS field types for selecting parts of your **content model** rather than content itself.
 
 Instead of relating to specific entries, these fields let an author pick a *section*, an
-*entry type*, a Commerce *product type* or a *tag group*. You then use that choice to drive a
+*entry type* or a Commerce *product type*. You then use that choice to drive a
 query. That makes them a good fit for page builders and "list the latest N from X" blocks,
 where the editor decides *what kind* of content a block pulls in.
 
@@ -17,14 +17,13 @@ where the editor decides *what kind* of content a block pulls in.
 | Field type | Selects | Requires |
 | --- | --- | --- |
 | **Section** | Entry sections | |
-| **Entry Type** | Entry types (Craft 5 decoupled these from sections) | |
+| **Entry Type** | Entry types | |
 | **Product Type** | Commerce product types | Craft Commerce |
-| **Tag Group** | Tag groups | |
 
 ## Requirements
 
-- Craft CMS 5.0.0 or later
-- PHP 8.2 or later
+- Craft CMS 6.0.0-beta.1 or later
+- PHP 8.5 or later
 - Craft Commerce, for the Product Type field only
 
 ## Installation
@@ -36,7 +35,7 @@ Or from your terminal:
 
 ```bash
 composer require wmd/section-and-product-type
-php craft plugin/install section-and-product-type
+php artisan craft:plugin:install section-and-product-type
 ```
 
 ## Field settings
@@ -46,19 +45,19 @@ Every field type shares the same settings.
 | Setting | What it does |
 | --- | --- |
 | **Multiple Select** | Lets the author pick more than one option. |
-| **View Mode** | How the options are presented: `List` renders radio buttons, or checkboxes when Multiple Select is on. `Dropdown` renders a select menu, or a multi-select. Defaults to `List`. |
+| **View Mode** | How the options are presented: `List` renders radio buttons, or checkboxes when Multiple Select is on. `Dropdown` renders a select menu, or a searchable multi-select; a multi-select. Defaults to `List`. |
 | **Template Value** | What the field returns in templates: `IDs` (default) or `Objects`. See [Template value](#template-value-ids-or-objects). |
 | **Select All** | Makes everything available for selection, minus anything in the exclude list. |
 | **Select By Text In Handle** | Also allows anything whose handle contains this text, for example `category`. |
 | **Allowed / Excluded** | The explicit allow and exclude lists. Excluded always wins: an excluded option is never offered, whether Select All, the Allowed list or the handle text would offer it. A filter box above them narrows long lists by name or handle. |
 
 The allow and exclude lists are saved in project config as UIDs, so a field means the same
-sections (or entry types, product types, tag groups) on every environment. Fields saved before
+sections (or entry types, product types) on every environment. Fields saved before
 2.3.0 hold numeric IDs; those keep working on the install that saved them and are written as
 UIDs the next time the field is saved. Field *values* on entries are content, not project
-config, and stay IDs.
+config, and stay IDs: an integer, or a list of integers with Multiple Select.
 
-Choose `Dropdown` when a site has enough sections, entry types or tag groups that a wall of
+Choose `Dropdown` when a site has enough sections or entry types that a wall of
 radio buttons becomes hard to scan. The stored value is identical in both view modes, so you
 can switch back and forth without touching your content.
 
@@ -76,9 +75,6 @@ Hand that straight to an element query:
 
 {# Product Type field #}
 {% set products = craft.products().typeId(entry.myProductTypeField).all() %}
-
-{# Tag Group field #}
-{% set tags = craft.tags().groupId(entry.myTagGroupField).all() %}
 ```
 
 ### Template value: IDs or Objects
@@ -107,7 +103,7 @@ underlying models:
 
 | Method | Returns |
 | --- | --- |
-| `all()` | The selected models (`Section`, `EntryType`, `ProductType` or `TagGroup`) |
+| `all()` | The selected models (`Section`, `EntryType` or `ProductType`) |
 | `one()` | The first selected model, or `null` |
 | `ids()` | The selected IDs |
 | `handles()` | The selected handles |
@@ -119,7 +115,7 @@ touches your content.
 
 ## GraphQL
 
-All four field types are available in GraphQL, for both queries and mutations. They return the
+All three field types are available in GraphQL, for both queries and mutations. They return the
 selected IDs: `Int`, or `[Int]` when Multiple Select is on.
 
 ```graphql
@@ -132,16 +128,32 @@ selected IDs: `Int`, or `[Int]` when Multiple Select is on.
 }
 ```
 
+## MCP and agents
+
+Each field describes the values it accepts through Craft 6's `getInputSchema()`: the IDs an
+author may pick, each with its name and handle. MCP clients that create or update entries see
+the valid IDs and send one of them; an ID that names no section (entry type, product type) is
+rejected when the entry is validated.
+
 ## Version support
 
 | Plugin | Craft CMS |
 | --- | --- |
+| 3.x | 6.x |
+| 2.2.x - 2.3.x | 5.x |
 | 2.1.x | 5.x |
 | 2.0.4 - 2.0.8 | 5.x |
 | 2.0.1 - 2.0.3 | 4.x |
 | 2.0.0 | 3.x, 4.x |
 | 1.1.0 | 3.x, 4.x |
 | 1.0.x | 3.x |
+
+### Craft 6
+
+3.x is the Craft 6 version. Craft 6 has no tags, so the Tag Group field type is gone; the
+Section, Entry Type and Product Type fields keep their class names, settings and stored values.
+Values saved by 2.x as JSON strings (`"5"`, `"[1,2]"`) are read as before and written back as
+plain integers on the next save. Product Type needs Commerce 6.
 
 ### Upgrading and downgrading
 
