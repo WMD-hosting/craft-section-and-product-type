@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 3.0.0-beta.1 - Unreleased
+## 3.0.0-beta.1 - 2026-11-11
 
 ### Changed
 - Requires Craft CMS 6 and PHP 8.5. The plugin runs on Craft 6's Laravel plugin base; the 2.x line stays on Craft 5.
