@@ -74,6 +74,30 @@ final class ItemReferencesTest extends TestCase
         self::assertSame(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'], ItemReferences::toUids(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0', ''], []));
     }
 
+    /**
+     * What resolves to nothing here is an item deleted since: the form leaves it out, so its save drops it.
+     */
+    public function test_the_form_shows_what_this_install_has(): void
+    {
+        $deleted = 'dddddddd-0000-4000-8000-000000000099';
+
+        self::assertSame(
+            [self::UIDS[14], self::UIDS[31]],
+            ItemReferences::forForm(['14', $deleted, '99', self::UIDS[31], '', 14], self::UIDS),
+        );
+    }
+
+    /**
+     * Product types while Commerce is off: resolving first would hand the form an empty list to post back.
+     */
+    public function test_the_form_shows_the_list_as_given_when_the_install_has_no_items(): void
+    {
+        self::assertSame(
+            ['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'],
+            ItemReferences::forForm(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0', '', 2], []),
+        );
+    }
+
     public function test_unresolved_lists_what_cannot_be_found(): void
     {
         self::assertSame(['99', 'nope'], ItemReferences::unresolved(['14', '99', '', 'nope', self::UIDS[18]], self::UIDS));

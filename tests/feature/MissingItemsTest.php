@@ -115,6 +115,18 @@ final class MissingItemsTest extends PluginTestCase
         );
     }
 
+    public function test_the_settings_form_says_why_the_product_type_lists_show_references(): void
+    {
+        $warnings = $this->settingsFormWarnings($this->productTypeField());
+
+        self::assertStringContainsString('Craft Commerce is not installed or enabled', (string) $warnings['allowProductTypes']);
+        self::assertStringContainsString('Craft Commerce is not installed or enabled', (string) $warnings['excludedProductTypes']);
+
+        // A list with nothing stored has nothing to explain, and neither has a list that shows names.
+        self::assertNull($this->settingsFormWarnings(new ProductTypeField(['handle' => 'productTypes']))['allowProductTypes']);
+        self::assertNull($this->settingsFormWarnings(new SectionField(['handle' => 'source', 'allowedSections' => [$this->news->uid]]))['allowedSections']);
+    }
+
     /**
      * Where the install does have items, a reference that names none of them is an item deleted since: the
      * form leaves it out and the save drops it, as before.
@@ -230,21 +242,37 @@ final class MissingItemsTest extends PluginTestCase
     }
 
     /**
-     * The controls of a field's settings form, keyed by the setting they post.
+     * The fields of a field's settings form, keyed by the setting they post.
      *
+     * @return array<string, UiField>
+     */
+    private function settingsFormFields(BaseTypeField $field): array
+    {
+        $fields = [];
+
+        foreach ($field->settingsUi()->nodes() as $node) {
+            if ($node instanceof UiField && $node->getControl()) {
+                $fields[(string) $node->getControl()->path()] = $node;
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
      * @return array<string, Control>
      */
     private function settingsFormControls(BaseTypeField $field): array
     {
-        $controls = [];
+        return array_map(static fn (UiField $node) => $node->getControl(), $this->settingsFormFields($field));
+    }
 
-        foreach ($field->settingsUi()->nodes() as $node) {
-            if ($node instanceof UiField && $node->getControl()) {
-                $controls[(string) $node->getControl()->path()] = $node->getControl();
-            }
-        }
-
-        return $controls;
+    /**
+     * @return array<string, string|null>
+     */
+    private function settingsFormWarnings(BaseTypeField $field): array
+    {
+        return array_map(static fn (UiField $node) => $node->props()['warning'] ?? null, $this->settingsFormFields($field));
     }
 
     /**

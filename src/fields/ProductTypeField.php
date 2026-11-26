@@ -65,6 +65,16 @@ class ProductTypeField extends BaseTypeField
         return $this->commerce()?->getProductTypeById($id);
     }
 
+    #[Override]
+    protected function noItemsNotice(): string
+    {
+        if ($this->commerce()) {
+            return parent::noItemsNotice();
+        }
+
+        return t('Craft Commerce is not installed or enabled, so the saved list is shown as it is stored and stays that way when you save.', category: 'section-and-product-type');
+    }
+
     /**
      * Commerce's product type service, when Commerce is installed and enabled.
      * Without it the field offers nothing instead of failing.

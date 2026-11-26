@@ -173,6 +173,10 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
         $words = static::itemWords();
         $uids = $this->uids();
         $options = $this->settingsOptions();
+        $allowed = ItemReferences::forForm((array) $this->{static::allowedAttribute()}, $uids);
+        $excluded = ItemReferences::forForm((array) $this->{static::excludedAttribute()}, $uids);
+        // The lists then hold references instead of names, so say why.
+        $keptAsStored = $this->hasItems() ? null : $this->noItemsNotice();
 
         return Ui::make([
             UiField::make(t('Multiple Select', category: Plugin::T9N))
@@ -206,7 +210,8 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
                     ->showAllOnEmpty()
                     ->options($options)
                     ->placeholder(t('Search {plural}', ['plural' => $words['plural']], Plugin::T9N))
-                    ->value(ItemReferences::toUids($this->allowedIds(), $uids))),
+                    ->value($allowed))
+                ->warning($allowed !== [] ? $keptAsStored : null),
             UiField::make(t('Excluded', category: Plugin::T9N))
                 ->instructions(t('Never offered to authors, whether Select All, the Allowed list or the handle text would offer them.', category: Plugin::T9N))
                 ->control(Combobox::make(static::excludedAttribute())
@@ -215,7 +220,8 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
                     ->showAllOnEmpty()
                     ->options($options)
                     ->placeholder(t('Search {plural}', ['plural' => $words['plural']], Plugin::T9N))
-                    ->value(ItemReferences::toUids($this->excludedIds(), $uids))),
+                    ->value($excluded))
+                ->warning($excluded !== [] ? $keptAsStored : null),
         ]);
     }
 
@@ -463,6 +469,27 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     // =========================================================================
 
     /**
+     * Whether this install has any item of this kind.
+     *
+     * Without one (product types while Commerce is off) no reference resolves, so a reference
+     * that is still good cannot be told from a deleted one. The lists and the values are then
+     * kept as they are stored instead of being resolved, validated or cleaned up.
+     */
+    protected function hasItems(): bool
+    {
+        return $this->loadItems() !== [];
+    }
+
+    /**
+     * What the settings form says next to a list it shows as stored, because the install has no
+     * items of this kind.
+     */
+    protected function noItemsNotice(): string
+    {
+        return t('This install has no {plural}, so the saved list is shown as it is stored and stays that way when you save.', ['plural' => static::itemWords()['plural']], Plugin::T9N);
+    }
+
+    /**
      * UIDs of every item, keyed by ID.
      *
      * @return array<int, string>
@@ -525,6 +552,16 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
                 'label' => $handle !== '' ? sprintf('%s (%s)', $name, $handle) : $name,
                 'value' => $uids[$id] ?? (string) $id,
             ];
+        }
+
+        if ($options === []) {
+            // Nothing to offer, so the lists are shown as stored (see hasItems()). They require an
+            // option match, so every reference they keep is an option, labelled as itself.
+            $stored = [...(array) $this->{static::allowedAttribute()}, ...(array) $this->{static::excludedAttribute()}];
+
+            foreach (ItemReferences::forForm($stored, []) as $reference) {
+                $options[] = ['label' => $reference, 'value' => $reference];
+            }
         }
 
         return $options;
@@ -602,12 +639,13 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     }
 
     /**
-     * Every item in the allow list must exist on this install.
+     * Every item in the allow list must exist on this install, unless the install has none to
+     * check against (see hasItems()).
      */
     private function existingItemsRule(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
-            if (ItemReferences::unresolved((array) $value, $this->uids()) === []) {
+            if (! $this->hasItems() || ItemReferences::unresolved((array) $value, $this->uids()) === []) {
                 return;
             }
 

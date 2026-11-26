@@ -88,6 +88,29 @@ final class ItemReferences
     }
 
     /**
+     * A list as the settings form shows it, and so posts it back: the UIDs of the items this
+     * install has, distinct and in list order.
+     *
+     * A reference that names none of them is an item deleted since, and is left out, so saving
+     * the form drops it. When the install has no items of this kind at all (product types while
+     * Commerce is off) a kept reference cannot be told from a deleted one, and the list is shown
+     * as given, the way toUids() saves it. Resolving first would empty it, and the form would
+     * post that back.
+     *
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
+     * @return string[]
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    public static function forForm(array $references, array $uids): array
+    {
+        return self::toUids($uids === [] ? $references : self::toIds($references, $uids), $uids);
+    }
+
+    /**
      * The references in a list that this install cannot resolve.
      *
      * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
