@@ -65,14 +65,19 @@ class ProductTypeField extends BaseTypeField
         return $this->commerce()?->getProductTypeById($id);
     }
 
+    /**
+     * Product types cannot be told from here while Commerce is not installed or is disabled.
+     */
     #[Override]
-    protected function noItemsNotice(): string
+    protected function canResolveItems(): bool
     {
-        if ($this->commerce()) {
-            return parent::noItemsNotice();
-        }
+        return $this->commerce() !== null;
+    }
 
-        return t('Craft Commerce is not installed or enabled, so the saved list is shown as it is stored and stays that way when you save.', category: 'section-and-product-type');
+    #[Override]
+    protected function unresolvableReason(): string
+    {
+        return t('Craft Commerce is not installed or enabled, so product types cannot be listed.', category: 'section-and-product-type');
     }
 
     /**

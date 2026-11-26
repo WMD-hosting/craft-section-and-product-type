@@ -115,6 +115,7 @@ underlying models:
 | `names()` | The selected names |
 | `isEmpty()` | Whether nothing is selected |
 | `missingIds()` | The selected IDs that no longer name anything, see [Deleted items](#deleted-items) |
+| `storedIds()` | Every selected ID as it is stored, in order, the missing ones included |
 
 The value stored in the database is identical in both modes, so switching this setting never
 touches your content.
@@ -131,8 +132,12 @@ The field treats that the same way with both Template Value settings:
 - In templates, `Objects` hands you only what exists (`all()`, `ids()`, `handles()`, `names()`
   and iterating); `missingIds()` lists the rest. `IDs` returns the stored IDs as they are.
 
+A single-select field goes by one ID. If its stored value is still a list from when Multiple
+Select was on, the first ID is the selection, with either Template Value.
+
 While Commerce is not installed or is disabled, no product type can be checked, so a Product Type
-field rejects nothing and its values are kept until Commerce is back.
+field rejects nothing. Its input shows each stored selection as its ID ("ID 3") with a notice,
+and the values are kept until Commerce is back.
 
 ## GraphQL
 

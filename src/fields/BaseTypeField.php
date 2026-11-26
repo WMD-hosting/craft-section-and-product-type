@@ -173,10 +173,11 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
         $words = static::itemWords();
         $uids = $this->uids();
         $options = $this->settingsOptions();
-        $allowed = ItemReferences::forForm((array) $this->{static::allowedAttribute()}, $uids);
-        $excluded = ItemReferences::forForm((array) $this->{static::excludedAttribute()}, $uids);
+        $resolvable = $this->canResolveItems();
+        $allowed = ItemReferences::forForm((array) $this->{static::allowedAttribute()}, $uids, $resolvable);
+        $excluded = ItemReferences::forForm((array) $this->{static::excludedAttribute()}, $uids, $resolvable);
         // The lists then hold references instead of names, so say why.
-        $keptAsStored = $this->hasItems() ? null : $this->noItemsNotice();
+        $keptAsStored = $resolvable ? null : $this->unresolvableReason().' '.t('The saved list is shown as it is stored and stays that way when you save.', category: Plugin::T9N);
 
         return Ui::make([
             UiField::make(t('Multiple Select', category: Plugin::T9N))
@@ -287,6 +288,12 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     {
         $ids = $this->valueIds($value);
 
+        if (! $this->multiple) {
+            // A single select holds one ID, whichever Template Value is set. A list left over
+            // from when Multiple Select was on is read as its first ID.
+            $ids = array_slice($ids, 0, 1);
+        }
+
         if ($this->valueType === Plugin::VALUE_TYPE_OBJECTS) {
             return $this->toSelectedItems($ids);
         }
@@ -318,14 +325,14 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
      * field settings since are accepted, so an existing selection survives a save.
      *
      * Both Template Value settings hand this the same IDs, the ones that name nothing
-     * included. An install with no items of this kind judges none (see hasItems()).
+     * included. Nothing is judged while the items cannot be told (see canResolveItems()).
      */
     #[Override]
     public function getElementRules(ElementInterface $element): array
     {
         return [
             function (string $attribute, mixed $value, Closure $fail): void {
-                if (! $this->hasItems()) {
+                if (! $this->canResolveItems()) {
                     return;
                 }
 
@@ -411,6 +418,10 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     #[Override]
     public function uiWarning(?ElementInterface $element = null): ?string
     {
+        if (! $this->canResolveItems()) {
+            return $this->unresolvableReason().' '.t('What is selected here is kept.', category: Plugin::T9N);
+        }
+
         if ($this->selectAll || $this->allowedIds() !== [] || $this->partOfHandle !== '') {
             return null;
         }
@@ -476,24 +487,28 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     // =========================================================================
 
     /**
-     * Whether this install has any item of this kind.
+     * Whether this install can tell which items of this kind exist.
      *
-     * Without one (product types while Commerce is off) no reference resolves, so a reference
-     * that is still good cannot be told from a deleted one. The lists and the values are then
-     * kept as they are stored instead of being resolved, validated or cleaned up.
+     * It always can for sections and entry types. It cannot for product types while Commerce is
+     * not installed or is disabled: none is listed then, so a reference that is still good looks
+     * exactly like a deleted one. While that lasts the lists and the values are kept as they are
+     * stored instead of being resolved, validated or cleaned up.
+     *
+     * An install that can tell and simply has no items is a different case: every reference
+     * there is known to name nothing, and is treated like any deleted item.
      */
-    protected function hasItems(): bool
+    protected function canResolveItems(): bool
     {
-        return $this->loadItems() !== [];
+        return true;
     }
 
     /**
-     * What the settings form says next to a list it shows as stored, because the install has no
-     * items of this kind.
+     * Why the items cannot be told, as a sentence for the control panel. Only asked while
+     * canResolveItems() is false.
      */
-    protected function noItemsNotice(): string
+    protected function unresolvableReason(): string
     {
-        return t('This install has no {plural}, so the saved list is shown as it is stored and stays that way when you save.', ['plural' => static::itemWords()['plural']], Plugin::T9N);
+        return t('The {plural} cannot be listed on this install.', ['plural' => static::itemWords()['plural']], Plugin::T9N);
     }
 
     /**
@@ -561,12 +576,12 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
             ];
         }
 
-        if ($options === []) {
-            // Nothing to offer, so the lists are shown as stored (see hasItems()). They require an
-            // option match, so every reference they keep is an option, labelled as itself.
+        if (! $this->canResolveItems()) {
+            // The lists are shown as stored. They require an option match, so every reference
+            // they keep is an option, labelled as itself.
             $stored = [...(array) $this->{static::allowedAttribute()}, ...(array) $this->{static::excludedAttribute()}];
 
-            foreach (ItemReferences::forForm($stored, []) as $reference) {
+            foreach (ItemReferences::forForm($stored, [], false) as $reference) {
                 $options[] = ['label' => $reference, 'value' => $reference];
             }
         }
@@ -589,9 +604,12 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
         $options = $this->getAllowedItems();
         $items = $this->items();
 
+        // While the items cannot be told, a stored ID is not known to be missing: it is shown as
+        // what it is. The ID goes in as a string, or the message formatter groups its digits.
+        $unnamed = $this->canResolveItems() ? 'Missing {singular} (ID {id})' : 'ID {id}';
+
         foreach ($selected as $id) {
-            // The ID as a string: the message formatter would group a number's digits.
-            $options[$id] ??= $items[$id] ?? t('Missing {singular} (ID {id})', ['singular' => static::itemWords()['singular'], 'id' => (string) $id], Plugin::T9N);
+            $options[$id] ??= $items[$id] ?? t($unnamed, ['singular' => static::itemWords()['singular'], 'id' => (string) $id], Plugin::T9N);
         }
 
         return $options;
@@ -607,18 +625,15 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     protected function toSelectedItems(array $ids): SelectedItems
     {
         $items = [];
-        $missing = [];
 
         foreach ($ids as $id) {
             $item = $this->loadItem($id);
             if ($item) {
                 $items[] = $item;
-            } else {
-                $missing[] = $id;
             }
         }
 
-        return new SelectedItems($items, $missing);
+        return new SelectedItems($items, $ids);
     }
 
     /**
@@ -631,8 +646,7 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     protected function valueIds(mixed $value): array
     {
         if ($value instanceof SelectedItems) {
-            // The ones that name nothing come last.
-            return [...$value->ids(), ...$value->missingIds()];
+            return $value->storedIds();
         }
 
         if (is_string($value)) {
@@ -654,13 +668,18 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     }
 
     /**
-     * Every item in the allow list must exist on this install, unless the install has none to
-     * check against (see hasItems()).
+     * Every item in the allow list must exist on this install. While the items cannot be told
+     * (see canResolveItems()) there is nothing to look them up in, and each one only has to be
+     * shaped like a reference.
      */
     private function existingItemsRule(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
-            if (! $this->hasItems() || ItemReferences::unresolved((array) $value, $this->uids()) === []) {
+            $wrong = $this->canResolveItems()
+                ? ItemReferences::unresolved((array) $value, $this->uids())
+                : ItemReferences::malformed((array) $value);
+
+            if ($wrong === []) {
                 return;
             }
 

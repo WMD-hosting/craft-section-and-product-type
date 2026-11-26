@@ -90,12 +90,41 @@ final class ItemReferencesTest extends TestCase
     /**
      * Product types while Commerce is off: resolving first would hand the form an empty list to post back.
      */
-    public function test_the_form_shows_the_list_as_given_when_the_install_has_no_items(): void
+    public function test_the_form_shows_the_list_as_given_when_the_install_cannot_tell_its_items(): void
     {
         self::assertSame(
             ['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'],
-            ItemReferences::forForm(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0', '', 2], []),
+            ItemReferences::forForm(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0', '', 2], [], false),
         );
+    }
+
+    /**
+     * An install that can tell its items and has none: every reference is known to name nothing.
+     */
+    public function test_the_form_shows_nothing_when_the_install_has_no_items(): void
+    {
+        self::assertSame([], ItemReferences::forForm(['2', 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'], []));
+    }
+
+    public function test_only_uids_and_numeric_ids_are_shaped_like_references(): void
+    {
+        self::assertSame([], ItemReferences::malformed([self::UIDS[14], 'EAA2390A-6A37-4B51-BDF8-B3F7FE4072A0', '7', 7, '', null]));
+        self::assertSame(
+            ['not-a-uid', '<b>x</b>', self::UIDS[14]."\n", '7.5', 'array', 'bool'],
+            ItemReferences::malformed(['not-a-uid', '<b>x</b>', self::UIDS[14]."\n", '7.5', ['nested'], true]),
+        );
+    }
+
+    /**
+     * Settings read from project config are not validated: a list entry that is no string or integer must
+     * not break reading or saving the rest.
+     */
+    public function test_a_list_entry_that_cannot_be_a_reference_is_skipped_not_cast(): void
+    {
+        self::assertSame([self::UIDS[14]], ItemReferences::toUids([['nested'], self::UIDS[14], true], self::UIDS));
+        self::assertSame(['eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'], ItemReferences::toUids([['nested'], 'eaa2390a-6a37-4b51-bdf8-b3f7fe4072a0'], []));
+        self::assertSame([14], ItemReferences::toIds([['nested'], '14'], self::UIDS));
+        self::assertSame(['array', 'nope'], ItemReferences::unresolved([['nested'], 'nope', '14'], self::UIDS));
     }
 
     public function test_unresolved_lists_what_cannot_be_found(): void

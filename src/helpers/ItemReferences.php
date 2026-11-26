@@ -68,7 +68,8 @@ final class ItemReferences
         $byUid = array_flip($uids);
 
         foreach ($references as $reference) {
-            if (self::_isBlank($reference)) {
+            // Only a string or an integer can be a reference; a nested array, say, is not saved.
+            if (self::_isBlank($reference) || (! is_string($reference) && ! is_int($reference))) {
                 continue;
             }
 
@@ -92,22 +93,51 @@ final class ItemReferences
      * install has, distinct and in list order.
      *
      * A reference that names none of them is an item deleted since, and is left out, so saving
-     * the form drops it. When the install has no items of this kind at all (product types while
-     * Commerce is off) a kept reference cannot be told from a deleted one, and the list is shown
-     * as given, the way toUids() saves it. Resolving first would empty it, and the form would
-     * post that back.
+     * the form drops it. That only holds while the install can tell which items exist. When it
+     * cannot (product types while Commerce is off), pass `$resolvable` as false: a kept
+     * reference then looks exactly like a deleted one, and the list is shown as given. Resolving
+     * it would empty it, and the form would post that back.
      *
      * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
      * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
+     * @param  bool  $resolvable  Whether the install can tell which items of this kind exist
      * @return string[]
      *
      * @author WMD Hosting
      *
      * @since 3.0.0
      */
-    public static function forForm(array $references, array $uids): array
+    public static function forForm(array $references, array $uids, bool $resolvable = true): array
     {
-        return self::toUids($uids === [] ? $references : self::toIds($references, $uids), $uids);
+        return $resolvable
+            ? self::toUids(self::toIds($references, $uids), $uids)
+            : self::toUids($references, []);
+    }
+
+    /**
+     * The references in a list that are shaped like neither a UID nor a numeric ID. This is all
+     * that can be checked while the install cannot tell which items exist.
+     *
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @return string[] The reference, or the name of its type when it is not a string
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    public static function malformed(array $references): array
+    {
+        $malformed = [];
+
+        foreach ($references as $reference) {
+            if (self::_isBlank($reference) || self::_isId($reference) || self::_isUid($reference)) {
+                continue;
+            }
+
+            $malformed[] = self::_describe($reference);
+        }
+
+        return $malformed;
     }
 
     /**
@@ -131,7 +161,7 @@ final class ItemReferences
                 continue;
             }
 
-            $unresolved[] = (string) $reference;
+            $unresolved[] = self::_describe($reference);
         }
 
         return $unresolved;
@@ -200,6 +230,31 @@ final class ItemReferences
     private static function _isId(mixed $reference): bool
     {
         return is_int($reference) || (is_string($reference) && preg_match('/^\d+$/', $reference) === 1);
+    }
+
+    /**
+     * Whether a reference is shaped like a UID.
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    private static function _isUid(mixed $reference): bool
+    {
+        return is_string($reference) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $reference) === 1;
+    }
+
+    /**
+     * A reference as text for a list of rejected ones: itself, or the name of its type when it is
+     * not something that can be a reference at all.
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    private static function _describe(mixed $reference): string
+    {
+        return is_string($reference) || is_int($reference) ? (string) $reference : get_debug_type($reference);
     }
 
     /**

@@ -26,18 +26,19 @@ class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSe
     private array $items;
 
     /**
-     * @var int[] The selected IDs that name nothing on this install.
+     * @var int[] Every selected ID in the order it is stored, including those that name nothing on this install.
      */
-    private array $missingIds;
+    private array $storedIds;
 
     /**
      * @param  array  $items  The selected models. Each one needs an `id`, and may have a `name` and `handle`.
-     * @param  int[]  $missingIds  The selected IDs that name nothing on this install.
+     * @param  int[]|null  $storedIds  Every selected ID in the order it is stored, when some of them
+     *                                 name nothing on this install. Defaults to the IDs of `$items`.
      */
-    public function __construct(array $items = [], array $missingIds = [])
+    public function __construct(array $items = [], ?array $storedIds = null)
     {
         $this->items = array_values($items);
-        $this->missingIds = array_values(array_map(intval(...), $missingIds));
+        $this->storedIds = $storedIds === null ? $this->ids() : array_values(array_map(intval(...), $storedIds));
     }
 
     /**
@@ -84,8 +85,9 @@ class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSe
      * Return the selected IDs that name nothing on this install: an item deleted after it was
      * selected, or any product type while Commerce is off.
      *
-     * Every other method, and iterating, leaves them out, so what you hand to an element query is
-     * what exists. The field keeps them in the stored value until an author removes them.
+     * all(), ids(), handles(), names() and iterating leave them out, so what you hand to an
+     * element query is what exists. The field keeps them in the stored value until an author
+     * removes them.
      *
      * @return int[]
      *
@@ -93,7 +95,20 @@ class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSe
      */
     public function missingIds(): array
     {
-        return $this->missingIds;
+        return array_values(array_diff($this->storedIds, $this->ids()));
+    }
+
+    /**
+     * Return every selected ID in the order it is stored, the ones missingIds() lists included.
+     * This is what the field validates and saves.
+     *
+     * @return int[]
+     *
+     * @since 3.0.0
+     */
+    public function storedIds(): array
+    {
+        return $this->storedIds;
     }
 
     /**
