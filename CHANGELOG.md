@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 2.3.1 - Unreleased
+## 2.3.1 - 2026-11-26
 
 ### Fixed
 - A single-select field with nothing chosen returns `null` again. From 2.2.0 to 2.3.0 it returned `''`, so `{% if entry.myField is not null %}` was true for an empty field, and passing the value on (to `craft.app.entries.getSectionById()`, say) failed. If a template or PHP code tests for the empty string strictly, change it: `is same as('')` and `=== ''` no longer match an empty field, so use `is null` or `is empty`; and `entry.myField ?? 'x'` now gives `'x'` for an empty field. `is empty`, `not entry.myField`, `== ''` and `|default` behave as before. Multi-select fields still return `[]`, fields with Template Value set to Objects still return an empty object, and what is stored does not change.
