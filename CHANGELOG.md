@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+### Fixed
+- Saving a Product Type field while Commerce is not installed or is disabled no longer empties its Allowed and Excluded lists. The settings show the lists as stored references with a notice, and the save keeps them. Saving such a field from code no longer fails with "Invalid product type selected."
+- An entry that holds a product type can be saved while Commerce is off, and keeps it. With Template Value set to IDs the save failed validation; with Objects the stored ID was saved as empty.
+- A stored ID whose section, entry type or product type has been deleted is handled the same with both Template Value settings: the entry does not validate until an author removes the ID, as 3.0.0-beta.1 documented. With Objects the ID used to be dropped on the next save without a word.
+- The input lists such an ID as "Missing section (ID 12)", selected, so the author can see it and take it out. Before, it had no option and could not be removed.
+
+### Added
+- `missingIds()` on the Objects value: the selected IDs that no longer name anything. `all()`, `ids()`, `handles()`, `names()` and iterating still return only what exists.
+- GitHub Actions run the tests, Pint and Larastan on PHP 8.5, and the code style and static analysis scripts 3.x lost with the Craft 5 tooling are back (`composer test`, `composer check-cs`, `composer phpstan`).
+
+### Changed
+- README: View Mode and Allowed / Excluded describe the Craft 6 inputs, the Craft 5 downgrade note is gone, and a new section says what happens to Tag Group fields on a site upgraded from Craft 5.
+
 ## 3.0.0-beta.2 - 2026-11-23
 
 ### Changed

@@ -45,17 +45,22 @@ Every field type shares the same settings.
 | Setting | What it does |
 | --- | --- |
 | **Multiple Select** | Lets the author pick more than one option. |
-| **View Mode** | How the options are presented: `List` renders radio buttons, or checkboxes when Multiple Select is on. `Dropdown` renders a select menu, or a searchable multi-select; a multi-select. Defaults to `List`. |
+| **View Mode** | How the options are presented. `List` renders radio buttons, or checkboxes when Multiple Select is on. `Dropdown` renders a select menu, or a searchable multi-select when Multiple Select is on. Defaults to `List`. |
 | **Template Value** | What the field returns in templates: `IDs` (default) or `Objects`. See [Template value](#template-value-ids-or-objects). |
 | **Select All** | Makes everything available for selection, minus anything in the exclude list. |
 | **Select By Text In Handle** | Also allows anything whose handle contains this text, for example `category`. |
-| **Allowed / Excluded** | The explicit allow and exclude lists. Excluded always wins: an excluded option is never offered, whether Select All, the Allowed list or the handle text would offer it. A filter box above them narrows long lists by name or handle. |
+| **Allowed / Excluded** | The explicit allow and exclude lists. Excluded always wins: an excluded option is never offered, whether Select All, the Allowed list or the handle text would offer it. Both are searchable multi-selects: type part of a name or handle to narrow a long list. |
 
 The allow and exclude lists are saved in project config as UIDs, so a field means the same
 sections (or entry types, product types) on every environment. Fields saved before
 2.3.0 hold numeric IDs; those keep working on the install that saved them and are written as
 UIDs the next time the field is saved. Field *values* on entries are content, not project
 config, and stay IDs: an integer, or a list of integers with Multiple Select.
+
+A Product Type field keeps its lists while Commerce is not installed or is disabled. No
+product type exists then, so the settings show the lists as stored references (UIDs) with a
+notice instead of names, and saving the field leaves them as they are. Entries keep the
+product types they hold too.
 
 Choose `Dropdown` when a site has enough sections or entry types that a wall of
 radio buttons becomes hard to scan. The stored value is identical in both view modes, so you
@@ -109,9 +114,25 @@ underlying models:
 | `handles()` | The selected handles |
 | `names()` | The selected names |
 | `isEmpty()` | Whether nothing is selected |
+| `missingIds()` | The selected IDs that no longer name anything, see [Deleted items](#deleted-items) |
 
 The value stored in the database is identical in both modes, so switching this setting never
 touches your content.
+
+## Deleted items
+
+When a section (entry type, product type) is deleted, entries that selected it still hold its ID.
+The field treats that the same way with both Template Value settings:
+
+- The input lists the ID as **Missing section (ID 12)**, still selected, so an author can see it
+  and take it out.
+- Until someone does, the entry does not validate ("*{field} is invalid.*") and the ID stays in
+  the stored value. Nothing is dropped behind the author's back.
+- In templates, `Objects` hands you only what exists (`all()`, `ids()`, `handles()`, `names()`
+  and iterating); `missingIds()` lists the rest. `IDs` returns the stored IDs as they are.
+
+While Commerce is not installed or is disabled, no product type can be checked, so a Product Type
+field rejects nothing and its values are kept until Commerce is back.
 
 ## GraphQL
 
@@ -133,7 +154,7 @@ selected IDs: `Int`, or `[Int]` when Multiple Select is on.
 Each field describes the values it accepts through Craft 6's `getInputSchema()`: the IDs an
 author may pick, each with its name and handle. MCP clients that create or update entries see
 the valid IDs and send one of them; an ID that names no section (entry type, product type) is
-rejected when the entry is validated.
+rejected when the entry is validated (see [Deleted items](#deleted-items)).
 
 ## Version support
 
@@ -150,25 +171,24 @@ rejected when the entry is validated.
 
 ### Craft 6
 
-3.x is the Craft 6 version. Craft 6 has no tags, so the Tag Group field type is gone; the
-Section, Entry Type and Product Type fields keep their class names, settings and stored values.
+3.x is the Craft 6 version. The Section, Entry Type and Product Type fields keep their class
+names, settings and stored values, so they carry over when a site is upgraded from Craft 5.
 Values saved by 2.x as JSON strings (`"5"`, `"[1,2]"`) are read as before and written back as
 plain integers on the next save. Product Type needs Commerce 6.
 
-### Upgrading and downgrading
+### Tag Group fields
 
-Upgrading is safe: new settings default to the plugin's previous behaviour, so existing fields
-render and store exactly as before until you change a setting.
+Craft 6 has no tags, so 3.x has no Tag Group field type. A Tag Group field that a site brings
+along from Craft 5 is not deleted. Craft treats it like any field whose type is not installed:
 
-**Downgrading from 2.1.0 to 2.0.x is not safe** once you have saved a field with the new
-`View Mode` or `Template Value` settings. The older code rejects those stored settings with an
-`UnknownPropertyException`, which breaks the Control Panel, not just the affected fields. If you
-need to roll back, remove the settings first:
+- In **Settings → Fields** it is listed as *Missing*, and its settings cannot be saved
+  (`Unable to find component class 'wmd\sectionandproducttype\fields\TagGroupField'`). Its
+  settings stay in project config as they were.
+- In an entry it shows as a disabled placeholder. Entries keep the tag group IDs they stored,
+  also when they are saved again.
 
-```bash
-php craft project-config/remove fields.<field-uid>.settings.viewMode
-php craft project-config/remove fields.<field-uid>.settings.valueType
-```
+Those IDs have nothing to point at in Craft 6. Take the field out of your templates, then delete
+it in **Settings → Fields** once you no longer need the stored values.
 
 ## Credits
 
