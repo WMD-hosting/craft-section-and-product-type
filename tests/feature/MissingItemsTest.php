@@ -8,11 +8,13 @@ use CraftCms\Cms\Database\Factories\SectionFactory;
 use CraftCms\Cms\Entry\Elements\Entry;
 use CraftCms\Cms\Field\Contracts\FieldInterface;
 use CraftCms\Cms\Field\FieldContext;
+use CraftCms\Cms\Http\Controllers\FieldsController;
 use CraftCms\Cms\Plugin\Testing\PluginTestCase;
 use CraftCms\Cms\Section\Models\Section;
 use CraftCms\Cms\Support\Facades\Fields;
 use CraftCms\Cms\Ui\Contracts\Control;
 use CraftCms\Cms\Ui\Nodes\Field as UiField;
+use CraftCms\Cms\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -98,7 +100,20 @@ final class MissingItemsTest extends PluginTestCase
         // Stored as a site that had Commerce left it, so without the validation the next test is about.
         self::assertTrue(Fields::saveField($field, false));
 
-        $saved = $this->saveFromTheSettingsForm($this->reload($field));
+        $stored = $this->reload($field);
+
+        // The control panel's field screen: the form's values, posted to Craft's own controller.
+        $this->actingAs(User::query()->firstOrFail())
+            ->postJson(action([FieldsController::class, 'store']), [
+                'fieldId' => $stored->id,
+                'type' => $stored::class,
+                'name' => $stored->name,
+                'handle' => $stored->handle,
+                'settings' => $this->settingsFormValues($stored),
+            ])
+            ->assertOk();
+
+        $saved = $this->reload($stored);
 
         self::assertSame([self::PRODUCT_TYPE_UID, self::LEGACY_PRODUCT_TYPE_ID], $saved->allowProductTypes);
         self::assertSame([self::OTHER_PRODUCT_TYPE_UID], $saved->excludedProductTypes);
@@ -283,26 +298,6 @@ final class MissingItemsTest extends PluginTestCase
     private function settingsFormValues(BaseTypeField $field): array
     {
         return array_map(static fn ($control) => $control->getValue(), $this->settingsFormControls($field));
-    }
-
-    /**
-     * Save a stored field the way the control panel does (FieldsController::store()): a new field of the
-     * same type and UID, its settings replaced by what the form posts.
-     */
-    private function saveFromTheSettingsForm(BaseTypeField $field): FieldInterface
-    {
-        $posted = Fields::createField([
-            'type' => $field::class,
-            'id' => $field->id,
-            'uid' => $field->uid,
-            'name' => $field->name,
-            'handle' => $field->handle,
-            'settings' => array_replace($field->getSettings(), $this->settingsFormValues($field)),
-        ]);
-
-        self::assertTrue(Fields::saveField($posted), implode(' ', $posted->errors()->all()));
-
-        return $this->reload($posted);
     }
 
     /**
