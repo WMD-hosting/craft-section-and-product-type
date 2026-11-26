@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ['3.x']
+  pull_request:
+    branches: ['3.x']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: composer ${{ matrix.script }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # test = PHPUnit, check-cs = Pint (pint.json), phpstan = Larastan (phpstan.neon)
+        script: [test, check-cs, phpstan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: intl, mbstring, pdo_sqlite, bcmath, gd, zip
+          coverage: none
+      # Before the install: with craftcms/plugin-installer loaded, validate fails on a root package that is a plugin.
+      - run: composer validate --strict
+      # No composer.lock in the repository: every run resolves the newest versions the constraints allow.
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: composer ${{ matrix.script }}

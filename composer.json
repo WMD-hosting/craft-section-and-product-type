@@ -1,6 +1,6 @@
 {
     "name": "wmd/section-and-product-type",
-    "description": "Craft CMS field types for selecting sections, entry types and Commerce product types. Built for page builders and dynamic content listings.",
+    "description": "Field types for selecting sections, entry types and Commerce product types.",
     "type": "craft-plugin",
     "keywords": [
         "craft",
@@ -32,6 +32,8 @@
         "craftcms/cms": "^6.0.0-beta.1"
     },
     "require-dev": {
+        "larastan/larastan": "^3.14",
+        "laravel/pint": "^1.27",
         "orchestra/testbench": "^11.0",
         "phpunit/phpunit": "^12.0 || ^13.0"
     },
@@ -47,7 +49,7 @@
         }
     },
     "extra": {
-        "name": "Section + Entry type + Product Type",
+        "name": "Section + Entry Type + Product Type",
         "handle": "section-and-product-type",
         "developer": "WMD Hosting",
         "developerUrl": "https://wmd.hosting/",
@@ -56,7 +58,10 @@
         "class": "wmd\\sectionandproducttype\\SectionAndProductType"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "check-cs": "pint --test",
+        "fix-cs": "pint",
+        "phpstan": "phpstan analyse --no-progress --memory-limit=1G"
     },
     "minimum-stability": "beta",
     "prefer-stable": true,
@@ -65,6 +70,21 @@
         "allow-plugins": {
             "craftcms/plugin-installer": true,
             "yiisoft/yii2-composer": false
+        },
+        "policy": {
+            "advisories": {
+                "ignore-id": {
+                    "PKSA-tfq6-ydd8-dhbf": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-v6ry-d7gg-9dnc": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-pkw5-3qxt-b654": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-dq27-x2jc-ksbp": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-szz8-81wy-3x8z": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-hs2m-ms65-2zgg": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-2xyw-sdzb-ywxg": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-k9x8-rxqp-rkb4": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false},
+                    "PKSA-hjpc-r7p2-zyfx": {"reason": "Twig < 3.31.1; craftcms/cms 6.0.0-beta.2 pins twig/twig ~3.30.0. Not blocked, still audited; remove once craftcms/cms allows twig/twig >=3.31.1", "on-audit": false}
+                }
+            }
         }
     }
 }

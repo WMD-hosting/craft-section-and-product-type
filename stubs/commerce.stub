@@ -1,0 +1,25 @@
+<?php
+
+namespace CraftCms\Commerce\Product\ProductType;
+
+/**
+ * The part of Craft Commerce 6 the Product Type field calls, for static analysis only.
+ *
+ * Commerce is optional, and its 6.x line cannot be installed next to a Craft 6 beta release, so PHPStan would
+ * not know this class otherwise. Nothing loads this file at runtime.
+ */
+class ProductTypes
+{
+    /**
+     * @return list<object>
+     */
+    public function getAllProductTypes(): array
+    {
+        return [];
+    }
+
+    public function getProductTypeById(int $productTypeId): ?object
+    {
+        return null;
+    }
+}

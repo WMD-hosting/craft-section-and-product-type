@@ -1,0 +1,11 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+    # Craft Commerce is optional and not installed here: the stub declares the one service the Product Type
+    # field calls, so its calls are checked instead of ignored.
+    scanFiles:
+        - stubs/commerce.stub

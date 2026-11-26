@@ -10,6 +10,7 @@ namespace wmd\sectionandproducttype\helpers;
  * reads them. Craft-free: every method takes the `id => uid` map of the items the install has.
  *
  * @author WMD Hosting
+ *
  * @since 2.3.0
  */
 final class ItemReferences
@@ -21,11 +22,12 @@ final class ItemReferences
      * The IDs a list refers to, distinct and in list order. References to items this install
      * does not have are left out.
      *
-     * @param array $references UIDs, or numeric IDs from before 2.3.0
-     * @param array<int, string> $uids UID of every item on this install, keyed by ID
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
      * @return int[]
      *
      * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     public static function toIds(array $references, array $uids): array
@@ -52,11 +54,12 @@ final class ItemReferences
      * this kind at all (product types while Commerce is off), nothing can be resolved and the
      * list is kept as given, so such a save loses nothing.
      *
-     * @param array $references UIDs, or numeric IDs from before 2.3.0
-     * @param array<int, string> $uids UID of every item on this install, keyed by ID
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
      * @return string[]
      *
      * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     public static function toUids(array $references, array $uids): array
@@ -65,18 +68,20 @@ final class ItemReferences
         $byUid = array_flip($uids);
 
         foreach ($references as $reference) {
-            if (self::_isBlank($reference)) {
+            // Only a string or an integer can be a reference; a nested array, say, is not saved.
+            if (self::_isBlank($reference) || (! is_string($reference) && ! is_int($reference))) {
                 continue;
             }
 
             $id = self::_id($reference, $uids, $byUid);
             if ($id !== null) {
                 $saved[$uids[$id]] = $uids[$id];
+
                 continue;
             }
 
-            if ($uids === [] || !self::_isId($reference)) {
-                $saved[(string)$reference] = (string)$reference;
+            if ($uids === [] || ! self::_isId($reference)) {
+                $saved[(string) $reference] = (string) $reference;
             }
         }
 
@@ -84,13 +89,66 @@ final class ItemReferences
     }
 
     /**
-     * The references in a list that this install cannot resolve.
+     * A list as the settings form shows it, and so posts it back: the UIDs of the items this
+     * install has, distinct and in list order.
      *
-     * @param array $references UIDs, or numeric IDs from before 2.3.0
-     * @param array<int, string> $uids UID of every item on this install, keyed by ID
+     * A reference that names none of them is an item deleted since, and is left out, so saving
+     * the form drops it. That only holds while the install can tell which items exist. When it
+     * cannot (product types while Commerce is off), pass `$resolvable` as false: a kept
+     * reference then looks exactly like a deleted one, and the list is shown as given. Resolving
+     * it would empty it, and the form would post that back.
+     *
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
+     * @param  bool  $resolvable  Whether the install can tell which items of this kind exist
      * @return string[]
      *
      * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    public static function forForm(array $references, array $uids, bool $resolvable = true): array
+    {
+        return $resolvable
+            ? self::toUids(self::toIds($references, $uids), $uids)
+            : self::toUids($references, []);
+    }
+
+    /**
+     * The references in a list that are shaped like neither a UID nor a numeric ID. This is all
+     * that can be checked while the install cannot tell which items exist.
+     *
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @return string[] The reference, or the name of its type when it is not a string
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    public static function malformed(array $references): array
+    {
+        $malformed = [];
+
+        foreach ($references as $reference) {
+            if (self::_isBlank($reference) || self::_isId($reference) || self::_isUid($reference)) {
+                continue;
+            }
+
+            $malformed[] = self::_describe($reference);
+        }
+
+        return $malformed;
+    }
+
+    /**
+     * The references in a list that this install cannot resolve.
+     *
+     * @param  array  $references  UIDs, or numeric IDs from before 2.3.0
+     * @param  array<int, string>  $uids  UID of every item on this install, keyed by ID
+     * @return string[]
+     *
+     * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     public static function unresolved(array $references, array $uids): array
@@ -103,7 +161,7 @@ final class ItemReferences
                 continue;
             }
 
-            $unresolved[] = (string)$reference;
+            $unresolved[] = self::_describe($reference);
         }
 
         return $unresolved;
@@ -114,14 +172,14 @@ final class ItemReferences
      * on, otherwise the allowed items plus the handle matches; minus the excluded items in
      * either case.
      *
-     * @param int[] $all Every item's ID
-     * @param bool $selectAll
-     * @param int[] $allowed
-     * @param int[] $handleMatches IDs of the items whose handle contains the field's handle text
-     * @param int[] $excluded
+     * @param  int[]  $all  Every item's ID
+     * @param  int[]  $allowed
+     * @param  int[]  $handleMatches  IDs of the items whose handle contains the field's handle text
+     * @param  int[]  $excluded
      * @return int[]
      *
      * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     public static function availableIds(array $all, bool $selectAll, array $allowed, array $handleMatches, array $excluded): array
@@ -130,7 +188,7 @@ final class ItemReferences
 
         return array_values(array_filter(
             $all,
-            static fn(int $id) => in_array($id, $picked, true) && !in_array($id, $excluded, true),
+            static fn (int $id) => in_array($id, $picked, true) && ! in_array($id, $excluded, true),
         ));
     }
 
@@ -140,23 +198,22 @@ final class ItemReferences
     /**
      * The ID one reference resolves to on this install, or null.
      *
-     * @param mixed $reference
-     * @param array<int, string> $uids
-     * @param array<string, int> $byUid
-     * @return int|null
+     * @param  array<int, string>  $uids
+     * @param  array<string, int>  $byUid
      *
      * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     private static function _id(mixed $reference, array $uids, array $byUid): ?int
     {
         if (self::_isId($reference)) {
-            $id = (int)$reference;
+            $id = (int) $reference;
 
             return isset($uids[$id]) ? $id : null;
         }
 
-        if (!is_string($reference)) {
+        if (! is_string($reference)) {
             return null;
         }
 
@@ -166,10 +223,8 @@ final class ItemReferences
     /**
      * Whether a reference is a numeric ID, as lists saved before 2.3.0 hold them.
      *
-     * @param mixed $reference
-     * @return bool
-     *
      * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     private static function _isId(mixed $reference): bool
@@ -178,12 +233,35 @@ final class ItemReferences
     }
 
     /**
-     * Whether a reference is an empty value a checkbox group posts when nothing is ticked.
-     *
-     * @param mixed $reference
-     * @return bool
+     * Whether a reference is shaped like a UID.
      *
      * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    private static function _isUid(mixed $reference): bool
+    {
+        return is_string($reference) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $reference) === 1;
+    }
+
+    /**
+     * A reference as text for a list of rejected ones: itself, or the name of its type when it is
+     * not something that can be a reference at all.
+     *
+     * @author WMD Hosting
+     *
+     * @since 3.0.0
+     */
+    private static function _describe(mixed $reference): string
+    {
+        return is_string($reference) || is_int($reference) ? (string) $reference : get_debug_type($reference);
+    }
+
+    /**
+     * Whether a reference is an empty value a checkbox group posts when nothing is ticked.
+     *
+     * @author WMD Hosting
+     *
      * @since 2.3.0
      */
     private static function _isBlank(mixed $reference): bool

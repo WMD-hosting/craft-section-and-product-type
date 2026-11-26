@@ -42,9 +42,10 @@ use function CraftCms\Cms\t;
  * content and stays IDs: an integer, or a list of integers with Multiple Select.
  *
  * @author WMD Hosting
+ *
  * @since 2.2.0
  */
-abstract class BaseTypeField extends Field implements PreviewableFieldInterface, InputSchemaFieldInterface
+abstract class BaseTypeField extends Field implements InputSchemaFieldInterface, PreviewableFieldInterface
 {
     // Public Properties
     // =========================================================================
@@ -116,7 +117,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     // =========================================================================
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * Craft only saves public properties declared outside abstract classes, so the shared
      * settings declared here must be listed, or every field save drops them.
@@ -135,7 +136,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * The allow and exclude lists are written as UIDs, so project config means the
      * same items on every install.
@@ -148,7 +149,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
 
         foreach ([static::allowedAttribute(), static::excludedAttribute()] as $attribute) {
             if (array_key_exists($attribute, $settings)) {
-                $settings[$attribute] = ItemReferences::toUids((array)$settings[$attribute], $uids);
+                $settings[$attribute] = ItemReferences::toUids((array) $settings[$attribute], $uids);
             }
         }
 
@@ -167,11 +168,16 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     #[Override]
-    public function settingsUi(UiContext $context = new UiContext()): Ui
+    public function settingsUi(UiContext $context = new UiContext): Ui
     {
         $words = static::itemWords();
         $uids = $this->uids();
         $options = $this->settingsOptions();
+        $resolvable = $this->canResolveItems();
+        $allowed = ItemReferences::forForm((array) $this->{static::allowedAttribute()}, $uids, $resolvable);
+        $excluded = ItemReferences::forForm((array) $this->{static::excludedAttribute()}, $uids, $resolvable);
+        // The lists then hold references instead of names, so say why.
+        $keptAsStored = $resolvable ? null : $this->unresolvableReason().' '.t('The saved list is shown as it is stored and stays that way when you save.', category: Plugin::T9N);
 
         return Ui::make([
             UiField::make(t('Multiple Select', category: Plugin::T9N))
@@ -205,7 +211,8 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
                     ->showAllOnEmpty()
                     ->options($options)
                     ->placeholder(t('Search {plural}', ['plural' => $words['plural']], Plugin::T9N))
-                    ->value(ItemReferences::toUids($this->allowedIds(), $uids))),
+                    ->value($allowed))
+                ->warning($allowed !== [] ? $keptAsStored : null),
             UiField::make(t('Excluded', category: Plugin::T9N))
                 ->instructions(t('Never offered to authors, whether Select All, the Allowed list or the handle text would offer them.', category: Plugin::T9N))
                 ->control(Combobox::make(static::excludedAttribute())
@@ -214,7 +221,8 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
                     ->showAllOnEmpty()
                     ->options($options)
                     ->placeholder(t('Search {plural}', ['plural' => $words['plural']], Plugin::T9N))
-                    ->value(ItemReferences::toUids($this->excludedIds(), $uids))),
+                    ->value($excluded))
+                ->warning($excluded !== [] ? $keptAsStored : null),
         ]);
     }
 
@@ -228,7 +236,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      */
     public function allowedIds(): array
     {
-        return ItemReferences::toIds((array)$this->{static::allowedAttribute()}, $this->uids());
+        return ItemReferences::toIds((array) $this->{static::allowedAttribute()}, $this->uids());
     }
 
     /**
@@ -238,7 +246,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      */
     public function excludedIds(): array
     {
-        return ItemReferences::toIds((array)$this->{static::excludedAttribute()}, $this->uids());
+        return ItemReferences::toIds((array) $this->{static::excludedAttribute()}, $this->uids());
     }
 
     /**
@@ -253,7 +261,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         $items = $this->items();
         $handleMatches = [];
 
-        if (!$this->selectAll && $this->partOfHandle !== '') {
+        if (! $this->selectAll && $this->partOfHandle !== '') {
             foreach ($this->handles() as $id => $handle) {
                 if (stripos($handle, $this->partOfHandle) !== false) {
                     $handleMatches[] = $id;
@@ -280,6 +288,12 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $ids = $this->valueIds($value);
 
+        if (! $this->multiple) {
+            // A single select holds one ID, whichever Template Value is set. A list left over
+            // from when Multiple Select was on is read as its first ID.
+            $ids = array_slice($ids, 0, 1);
+        }
+
         if ($this->valueType === Plugin::VALUE_TYPE_OBJECTS) {
             return $this->toSelectedItems($ids);
         }
@@ -288,7 +302,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * Stored as the field's own JSON: an integer, or a list of integers with Multiple Select.
      */
@@ -309,16 +323,23 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     /**
      * Every stored ID must name an item this install has. Items left out of the
      * field settings since are accepted, so an existing selection survives a save.
+     *
+     * Both Template Value settings hand this the same IDs, the ones that name nothing
+     * included. Nothing is judged while the items cannot be told (see canResolveItems()).
      */
     #[Override]
     public function getElementRules(ElementInterface $element): array
     {
         return [
-            function(string $attribute, mixed $value, Closure $fail): void {
+            function (string $attribute, mixed $value, Closure $fail): void {
+                if (! $this->canResolveItems()) {
+                    return;
+                }
+
                 $items = $this->items();
 
                 foreach ($this->valueIds($value) as $id) {
-                    if (!isset($items[$id])) {
+                    if (! isset($items[$id])) {
                         $fail(t('{attribute} is invalid.', ['attribute' => t($this->name, category: 'site')]));
 
                         return;
@@ -359,7 +380,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         $options = [];
 
         foreach ($this->inputItems($ids) as $id => $name) {
-            $options[] = ['label' => $name, 'value' => (string)$id];
+            $options[] = ['label' => $name, 'value' => (string) $id];
         }
 
         $dropdown = $this->viewMode === Plugin::VIEW_MODE_DROPDOWN;
@@ -391,12 +412,16 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             ->options($options)
             ->presentation($dropdown ? ChoicePresentation::Select : ChoicePresentation::Radios)
             ->withoutPlaceholder()
-            ->value(isset($ids[0]) ? (string)$ids[0] : '');
+            ->value(isset($ids[0]) ? (string) $ids[0] : '');
     }
 
     #[Override]
     public function uiWarning(?ElementInterface $element = null): ?string
     {
+        if (! $this->canResolveItems()) {
+            return $this->unresolvableReason().' '.t('What is selected here is kept.', category: Plugin::T9N);
+        }
+
         if ($this->selectAll || $this->allowedIds() !== [] || $this->partOfHandle !== '') {
             return null;
         }
@@ -414,7 +439,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     // =========================================================================
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * The IDs an author may pick, so MCP clients and agents send a valid value.
      */
@@ -430,7 +455,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         }
 
         $item['description'] = implode('; ', array_map(
-            static fn(int $id, string $name) => sprintf('%d = %s (%s)', $id, $name, $handles[$id] ?? ''),
+            static fn (int $id, string $name) => sprintf('%d = %s (%s)', $id, $name, $handles[$id] ?? ''),
             array_keys($items),
             $items,
         ));
@@ -444,7 +469,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         return [
             'name' => $this->handle,
             'type' => $this->multiple ? Type::listOf(Type::int()) : Type::int(),
-            'resolve' => function($source) {
+            'resolve' => function ($source) {
                 $ids = $this->valueIds($source->getFieldValue($this->handle));
 
                 return $this->multiple ? $ids : ($ids[0] ?? null);
@@ -462,6 +487,31 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     // =========================================================================
 
     /**
+     * Whether this install can tell which items of this kind exist.
+     *
+     * It always can for sections and entry types. It cannot for product types while Commerce is
+     * not installed or is disabled: none is listed then, so a reference that is still good looks
+     * exactly like a deleted one. While that lasts the lists and the values are kept as they are
+     * stored instead of being resolved, validated or cleaned up.
+     *
+     * An install that can tell and simply has no items is a different case: every reference
+     * there is known to name nothing, and is treated like any deleted item.
+     */
+    protected function canResolveItems(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Why the items cannot be told, as a sentence for the control panel. Only asked while
+     * canResolveItems() is false.
+     */
+    protected function unresolvableReason(): string
+    {
+        return t('The {plural} cannot be listed on this install.', ['plural' => static::itemWords()['plural']], Plugin::T9N);
+    }
+
+    /**
      * UIDs of every item, keyed by ID.
      *
      * @return array<int, string>
@@ -470,7 +520,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $uids = [];
         foreach ($this->loadItems() as $id => $item) {
-            $uids[(int)$id] = (string)$item->uid;
+            $uids[(int) $id] = (string) $item->uid;
         }
 
         return $uids;
@@ -485,7 +535,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $names = [];
         foreach ($this->loadItems() as $id => $item) {
-            $names[(int)$id] = t((string)$item->name, category: 'site');
+            $names[(int) $id] = t((string) $item->name, category: 'site');
         }
 
         return $names;
@@ -500,7 +550,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $handles = [];
         foreach ($this->loadItems() as $id => $item) {
-            $handles[(int)$id] = (string)($item->handle ?? '');
+            $handles[(int) $id] = (string) ($item->handle ?? '');
         }
 
         return $handles;
@@ -522,28 +572,17 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             $handle = $handles[$id] ?? '';
             $options[] = [
                 'label' => $handle !== '' ? sprintf('%s (%s)', $name, $handle) : $name,
-                'value' => $uids[$id] ?? (string)$id,
+                'value' => $uids[$id] ?? (string) $id,
             ];
         }
 
-        return $options;
-    }
+        if (! $this->canResolveItems()) {
+            // The lists are shown as stored. They require an option match, so every reference
+            // they keep is an option, labelled as itself.
+            $stored = [...(array) $this->{static::allowedAttribute()}, ...(array) $this->{static::excludedAttribute()}];
 
-    /**
-     * The items the input offers: the allowed ones, plus any stored selection
-     * that has since been excluded, so saving the entry does not silently drop it.
-     *
-     * @param int[] $selected
-     * @return array<int, string>
-     */
-    protected function inputItems(array $selected): array
-    {
-        $options = $this->getAllowedItems();
-        $items = $this->items();
-
-        foreach ($selected as $id) {
-            if (!isset($options[$id]) && isset($items[$id])) {
-                $options[$id] = $items[$id];
+            foreach (ItemReferences::forForm($stored, [], false) as $reference) {
+                $options[] = ['label' => $reference, 'value' => $reference];
             }
         }
 
@@ -551,9 +590,37 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * Wrap the selected IDs in a SelectedItems object holding the models.
+     * The items the input offers: the allowed ones, plus every stored selection that is not
+     * among them, so the author sees what the field holds and saving the entry does not
+     * silently drop it. A selection that has since been excluded keeps its name. One that names
+     * nothing on this install is labelled as missing; it fails validation until the author
+     * removes it (see getElementRules()).
      *
-     * @param int[] $ids
+     * @param  int[]  $selected
+     * @return array<int, string>
+     */
+    protected function inputItems(array $selected): array
+    {
+        $options = $this->getAllowedItems();
+        $items = $this->items();
+
+        // While the items cannot be told, a stored ID is not known to be missing: it is shown as
+        // what it is. The ID goes in as a string, or the message formatter groups its digits.
+        $unnamed = $this->canResolveItems() ? 'Missing {singular} (ID {id})' : 'ID {id}';
+
+        foreach ($selected as $id) {
+            $options[$id] ??= $items[$id] ?? t($unnamed, ['singular' => static::itemWords()['singular'], 'id' => (string) $id], Plugin::T9N);
+        }
+
+        return $options;
+    }
+
+    /**
+     * Wrap the selected IDs in a SelectedItems object holding the models. The IDs that name
+     * nothing on this install travel with it, so validating and saving see the same IDs as
+     * with Template Value set to IDs.
+     *
+     * @param  int[]  $ids
      */
     protected function toSelectedItems(array $ids): SelectedItems
     {
@@ -566,7 +633,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             }
         }
 
-        return new SelectedItems($items);
+        return new SelectedItems($items, $ids);
     }
 
     /**
@@ -579,21 +646,21 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     protected function valueIds(mixed $value): array
     {
         if ($value instanceof SelectedItems) {
-            return $value->ids();
+            return $value->storedIds();
         }
 
         if (is_string($value)) {
             $value = Json::decodeIfJson($value);
         }
 
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             $value = ($value === null || $value === '') ? [] : [$value];
         }
 
         $ids = [];
         foreach ($value as $id) {
             if (is_int($id) || (is_string($id) && ctype_digit($id))) {
-                $ids[(int)$id] = (int)$id;
+                $ids[(int) $id] = (int) $id;
             }
         }
 
@@ -601,12 +668,18 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * Every item in the allow list must exist on this install.
+     * Every item in the allow list must exist on this install. While the items cannot be told
+     * (see canResolveItems()) there is nothing to look them up in, and each one only has to be
+     * shaped like a reference.
      */
     private function existingItemsRule(): Closure
     {
-        return function(string $attribute, mixed $value, Closure $fail): void {
-            if (ItemReferences::unresolved((array)$value, $this->uids()) === []) {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $wrong = $this->canResolveItems()
+                ? ItemReferences::unresolved((array) $value, $this->uids())
+                : ItemReferences::malformed((array) $value);
+
+            if ($wrong === []) {
                 return;
             }
 

@@ -18,7 +18,7 @@ use Traversable;
  * the fields have always returned, so it can still be handed straight to an
  * element query. The named accessors give you the underlying models instead.
  */
-class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, Stringable, JsonSerializable
+class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, Stringable
 {
     /**
      * @var array The selected models, in the order they were selected.
@@ -26,17 +26,23 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     private array $items;
 
     /**
-     * @param array $items The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @var int[] Every selected ID in the order it is stored, including those that name nothing on this install.
      */
-    public function __construct(array $items = [])
+    private array $storedIds;
+
+    /**
+     * @param  array  $items  The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @param  int[]|null  $storedIds  Every selected ID in the order it is stored, when some of them
+     *                                 name nothing on this install. Defaults to the IDs of `$items`.
+     */
+    public function __construct(array $items = [], ?array $storedIds = null)
     {
         $this->items = array_values($items);
+        $this->storedIds = $storedIds === null ? $this->ids() : array_values(array_map(intval(...), $storedIds));
     }
 
     /**
      * Return the selected models.
-     *
-     * @return array
      */
     public function all(): array
     {
@@ -45,8 +51,6 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
 
     /**
      * Return the first selected model, or null when nothing is selected.
-     *
-     * @return mixed
      */
     public function one(): mixed
     {
@@ -55,38 +59,60 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
 
     /**
      * Return the selected IDs.
-     *
-     * @return array
      */
     public function ids(): array
     {
-        return array_map(static fn($item) => (int)$item->id, $this->items);
+        return array_map(static fn ($item) => (int) $item->id, $this->items);
     }
 
     /**
      * Return the selected handles.
-     *
-     * @return array
      */
     public function handles(): array
     {
-        return array_map(static fn($item) => (string)($item->handle ?? ''), $this->items);
+        return array_map(static fn ($item) => (string) ($item->handle ?? ''), $this->items);
     }
 
     /**
      * Return the selected names.
-     *
-     * @return array
      */
     public function names(): array
     {
-        return array_map(static fn($item) => (string)($item->name ?? ''), $this->items);
+        return array_map(static fn ($item) => (string) ($item->name ?? ''), $this->items);
     }
 
     /**
-     * Return whether nothing is selected.
+     * Return the selected IDs that name nothing on this install: an item deleted after it was
+     * selected, or any product type while Commerce is off.
      *
-     * @return bool
+     * all(), ids(), handles(), names() and iterating leave them out, so what you hand to an
+     * element query is what exists. The field keeps them in the stored value until an author
+     * removes them.
+     *
+     * @return int[]
+     *
+     * @since 3.0.0
+     */
+    public function missingIds(): array
+    {
+        return array_values(array_diff($this->storedIds, $this->ids()));
+    }
+
+    /**
+     * Return every selected ID in the order it is stored, the ones missingIds() lists included.
+     * This is what the field validates and saves.
+     *
+     * @return int[]
+     *
+     * @since 3.0.0
+     */
+    public function storedIds(): array
+    {
+        return $this->storedIds;
+    }
+
+    /**
+     * Return whether nothing that exists is selected.
      */
     public function isEmpty(): bool
     {
@@ -94,7 +120,7 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getIterator(): Traversable
     {
@@ -102,7 +128,7 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function count(): int
     {
@@ -110,7 +136,7 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function offsetExists(mixed $offset): bool
     {
@@ -118,29 +144,25 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function offsetGet(mixed $offset): mixed
     {
-        return isset($this->items[$offset]) ? (int)$this->items[$offset]->id : null;
+        return isset($this->items[$offset]) ? (int) $this->items[$offset]->id : null;
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-    }
+    public function offsetSet(mixed $offset, mixed $value): void {}
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function offsetUnset(mixed $offset): void
-    {
-    }
+    public function offsetUnset(mixed $offset): void {}
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function __toString(): string
     {
@@ -148,7 +170,7 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function jsonSerialize(): mixed
     {
