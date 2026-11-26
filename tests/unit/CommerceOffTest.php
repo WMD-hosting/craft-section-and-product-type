@@ -80,6 +80,24 @@ final class CommerceOffTest extends TestCase
     }
 
     /**
+     * Lists from hand-edited project config or from code can carry string keys. The options are
+     * built from both lists, and a key the two share must not cost either list a reference.
+     */
+    public function testListsWithStringKeysPostBackWhole(): void
+    {
+        $field = new ProductTypeFieldProbe([
+            'handle' => 'productTypes',
+            'allowProductTypes' => ['a' => self::PRODUCT_TYPE_UID, 'b' => self::LEGACY_PRODUCT_TYPE_ID],
+            'excludedProductTypes' => ['a' => self::OTHER_PRODUCT_TYPE_UID],
+        ]);
+
+        self::assertSame(
+            ['allowed' => [self::PRODUCT_TYPE_UID, self::LEGACY_PRODUCT_TYPE_ID], 'excluded' => [self::OTHER_PRODUCT_TYPE_UID]],
+            $field->postedLists(),
+        );
+    }
+
+    /**
      * Saving the field from code, as a migration or a plugin does.
      */
     public function testAFieldWithStoredListsIsValid(): void

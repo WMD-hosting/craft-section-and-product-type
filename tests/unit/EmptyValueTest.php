@@ -25,7 +25,7 @@ final class EmptyValueTest extends TestCase
         $field = ThingField::over(self::THINGS, ['selectAll' => true]);
         $stored = $field->serializeValue(null);
 
-        // What 2.x has always written for an empty single select, and still does.
+        // What 2.2.0 and later write for an empty single select (2.1 wrote `null`). 2.3.1 still writes it.
         self::assertSame('""', $stored);
         self::assertNull($field->normalizeValue($stored));
     }

@@ -289,7 +289,11 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
         if (!$this->canResolveItems()) {
             // The lists are shown as stored. A checkbox group posts the options it ticks, so
             // every reference they keep is an option, labelled as itself.
-            $stored = [...(array)$this->{static::allowedAttribute()}, ...(array)$this->{static::excludedAttribute()}];
+            // By value only: a list with string keys would otherwise lose the entries whose key the other list shares.
+            $stored = [
+                ...array_values((array)$this->{static::allowedAttribute()}),
+                ...array_values((array)$this->{static::excludedAttribute()}),
+            ];
 
             foreach (ItemReferences::forForm($stored, [], false) as $reference) {
                 $options[] = [

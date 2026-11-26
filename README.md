@@ -112,7 +112,7 @@ underlying models:
 | `ids()` | The selected IDs |
 | `handles()` | The selected handles |
 | `names()` | The selected names |
-| `isEmpty()` | Whether nothing is selected |
+| `isEmpty()` | Whether nothing that exists is selected |
 | `storedIds()` | Every selected ID as stored. The same as `ids()`, except [while Commerce is off](#product-types-while-commerce-is-off) |
 
 The value stored in the database is identical in both modes, so switching this setting never
