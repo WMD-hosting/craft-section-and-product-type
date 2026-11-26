@@ -1,9 +1,18 @@
 {# Shared author-facing input. `value` is an ID list (multiple) or a single ID / ''.
-   `options` is null when there is nothing to pick from; `notice` then says why. #}
+   `options` is null when no control is shown; `notice` or `warning` then says why.
+   `warning` can also come with a control: it uses the markup of Craft's own field warnings. #}
 {% import '_includes/forms' as forms %}
 
 {% if notice %}
     <p class="light">{{ notice }}</p>
+{% endif %}
+
+{% if warning %}
+    <p class="warning has-icon">
+        <span class="icon" aria-hidden="true"></span>
+        <span class="visually-hidden">{{ 'Warning:'|t('app') }} </span>
+        <span>{{ warning }}</span>
+    </p>
 {% endif %}
 
 {% if options is not null %}

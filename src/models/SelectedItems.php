@@ -26,11 +26,19 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     private array $items;
 
     /**
-     * @param array $items The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @var int[] Every selected ID in the order it is stored, including those whose model could not be loaded.
      */
-    public function __construct(array $items = [])
+    private array $storedIds;
+
+    /**
+     * @param array $items The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @param int[]|null $storedIds Every selected ID in the order it is stored, when the models of
+     * some could not be loaded. Defaults to the IDs of `$items`.
+     */
+    public function __construct(array $items = [], ?array $storedIds = null)
     {
         $this->items = array_values($items);
+        $this->storedIds = $storedIds === null ? $this->ids() : array_values(array_map('intval', $storedIds));
     }
 
     /**
@@ -84,7 +92,24 @@ class SelectedItems implements IteratorAggregate, Countable, ArrayAccess, String
     }
 
     /**
-     * Return whether nothing is selected.
+     * Return every selected ID in the order it is stored. This is what the field saves.
+     *
+     * It is the same as ids(), except on an install that cannot list the items: a Product Type
+     * field while Commerce is not installed or is disabled. No product type can be loaded
+     * there, so all(), ids(), handles(), names() and iterating give nothing, while the stored
+     * IDs are kept here so that saving the entry does not lose them.
+     *
+     * @return int[]
+     *
+     * @since 2.3.1
+     */
+    public function storedIds(): array
+    {
+        return $this->storedIds;
+    }
+
+    /**
+     * Return whether nothing that exists is selected.
      *
      * @return bool
      */
