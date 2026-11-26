@@ -301,6 +301,10 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
             $value = $value[0] ?? null;
         } elseif ($value !== null && $value !== '') {
             $value = (int)$value;
+        } else {
+            // Nothing chosen is null. A single select saved empty is stored as `""`, which
+            // decodes to '': handed on as it was, `is not null` held for an empty field.
+            $value = null;
         }
 
         if ($this->valueType === SectionAndProductType::VALUE_TYPE_OBJECTS) {
