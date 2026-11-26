@@ -1,8 +1,25 @@
-# Section + Entry type + Product Type Changelog
+# Section + Entry Type + Product Type Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
+
+## 2.3.1 - Unreleased
+
+### Fixed
+- A single-select field with nothing chosen returns `null` again. From 2.2.0 to 2.3.0 it returned `''`, so `{% if entry.myField is not null %}` was true for an empty field, and passing the value on (to `craft.app.entries.getSectionById()`, say) failed. If a template or PHP code tests for the empty string strictly, change it: `is same as('')` and `=== ''` no longer match an empty field, so use `is null` or `is empty`; and `entry.myField ?? 'x'` now gives `'x'` for an empty field. `is empty`, `not entry.myField`, `== ''` and `|default` behave as before. Multi-select fields still return `[]`, fields with Template Value set to Objects still return an empty object, and what is stored does not change.
+- Saving a Product Type field while Commerce is not installed or is disabled no longer empties its Allowed and Excluded lists. The settings show the lists as stored references with a notice, and the save keeps them. Saving such a field from code no longer fails with "Invalid product type selected."
+- With Template Value set to Objects, an entry that holds product types keeps them when it is saved while Commerce is off. The save wrote the field back empty. Fields with Template Value set to IDs kept their value and still do.
+- While Commerce is off, the input of a Product Type field says so and shows each stored selection as its ID, ticked. Before, it showed an empty control, or "No product types are allowed for this field yet."
+- An Allowed or Excluded entry that is not text or a number, which hand-edited project config can hold, is skipped instead of being saved as the word "Array".
+
+### Changed
+- The plugin's name is written "Section + Entry Type + Product Type", with a capital T in "Entry Type".
+- The plugin icon is the new one of the wmd.hr plugin family.
+
+### Added
+- `storedIds()` on the Objects value: every selected ID as stored. It equals `ids()`, except for a Product Type field while Commerce is off, where no product type can be loaded and `all()`, `ids()`, `handles()` and `names()` give nothing.
+- GitHub Actions run the tests, ECS and PHPStan on the 2.x line.
 
 ## 2.3.0 - 2026-10-29
 
