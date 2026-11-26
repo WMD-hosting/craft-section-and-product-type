@@ -26,11 +26,18 @@ class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSe
     private array $items;
 
     /**
-     * @param  array  $items  The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @var int[] The selected IDs that name nothing on this install.
      */
-    public function __construct(array $items = [])
+    private array $missingIds;
+
+    /**
+     * @param  array  $items  The selected models. Each one needs an `id`, and may have a `name` and `handle`.
+     * @param  int[]  $missingIds  The selected IDs that name nothing on this install.
+     */
+    public function __construct(array $items = [], array $missingIds = [])
     {
         $this->items = array_values($items);
+        $this->missingIds = array_values(array_map(intval(...), $missingIds));
     }
 
     /**
@@ -74,7 +81,23 @@ class SelectedItems implements ArrayAccess, Countable, IteratorAggregate, JsonSe
     }
 
     /**
-     * Return whether nothing is selected.
+     * Return the selected IDs that name nothing on this install: an item deleted after it was
+     * selected, or any product type while Commerce is off.
+     *
+     * Every other method, and iterating, leaves them out, so what you hand to an element query is
+     * what exists. The field keeps them in the stored value until an author removes them.
+     *
+     * @return int[]
+     *
+     * @since 3.0.0
+     */
+    public function missingIds(): array
+    {
+        return $this->missingIds;
+    }
+
+    /**
+     * Return whether nothing that exists is selected.
      */
     public function isEmpty(): bool
     {

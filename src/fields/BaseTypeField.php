@@ -316,12 +316,19 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     /**
      * Every stored ID must name an item this install has. Items left out of the
      * field settings since are accepted, so an existing selection survives a save.
+     *
+     * Both Template Value settings hand this the same IDs, the ones that name nothing
+     * included. An install with no items of this kind judges none (see hasItems()).
      */
     #[Override]
     public function getElementRules(ElementInterface $element): array
     {
         return [
             function (string $attribute, mixed $value, Closure $fail): void {
+                if (! $this->hasItems()) {
+                    return;
+                }
+
                 $items = $this->items();
 
                 foreach ($this->valueIds($value) as $id) {
@@ -568,8 +575,11 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     }
 
     /**
-     * The items the input offers: the allowed ones, plus any stored selection
-     * that has since been excluded, so saving the entry does not silently drop it.
+     * The items the input offers: the allowed ones, plus every stored selection that is not
+     * among them, so the author sees what the field holds and saving the entry does not
+     * silently drop it. A selection that has since been excluded keeps its name. One that names
+     * nothing on this install is labelled as missing; it fails validation until the author
+     * removes it (see getElementRules()).
      *
      * @param  int[]  $selected
      * @return array<int, string>
@@ -580,31 +590,35 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
         $items = $this->items();
 
         foreach ($selected as $id) {
-            if (! isset($options[$id]) && isset($items[$id])) {
-                $options[$id] = $items[$id];
-            }
+            // The ID as a string: the message formatter would group a number's digits.
+            $options[$id] ??= $items[$id] ?? t('Missing {singular} (ID {id})', ['singular' => static::itemWords()['singular'], 'id' => (string) $id], Plugin::T9N);
         }
 
         return $options;
     }
 
     /**
-     * Wrap the selected IDs in a SelectedItems object holding the models.
+     * Wrap the selected IDs in a SelectedItems object holding the models. The IDs that name
+     * nothing on this install travel with it, so validating and saving see the same IDs as
+     * with Template Value set to IDs.
      *
      * @param  int[]  $ids
      */
     protected function toSelectedItems(array $ids): SelectedItems
     {
         $items = [];
+        $missing = [];
 
         foreach ($ids as $id) {
             $item = $this->loadItem($id);
             if ($item) {
                 $items[] = $item;
+            } else {
+                $missing[] = $id;
             }
         }
 
-        return new SelectedItems($items);
+        return new SelectedItems($items, $missing);
     }
 
     /**
@@ -617,7 +631,8 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
     protected function valueIds(mixed $value): array
     {
         if ($value instanceof SelectedItems) {
-            return $value->ids();
+            // The ones that name nothing come last.
+            return [...$value->ids(), ...$value->missingIds()];
         }
 
         if (is_string($value)) {
