@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 3.0.0-beta.3 - 2026-11-26
 
 ### Fixed
 - Saving a Product Type field while Commerce is not installed or is disabled no longer empties its Allowed and Excluded lists. The settings show the lists as stored references with a notice, and the save keeps them. Saving such a field from code no longer fails with "Invalid product type selected."
