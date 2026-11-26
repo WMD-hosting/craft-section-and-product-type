@@ -1,4 +1,4 @@
-# Section + Entry type + Product Type
+# Section + Entry Type + Product Type
 
 [![Craft CMS](https://img.shields.io/badge/Craft%20CMS-5.x-E5422B)](https://craftcms.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
@@ -29,7 +29,7 @@ where the editor decides *what kind* of content a block pulls in.
 
 ## Installation
 
-From the Craft Control Panel, go to **Plugin Store**, search for *Section + Entry type + Product Type* and
+From the Craft Control Panel, go to **Plugin Store**, search for *Section + Entry Type + Product Type* and
 click **Install**.
 
 Or from your terminal:
@@ -65,7 +65,7 @@ can switch back and forth without touching your content.
 ## Template usage
 
 By default a field returns the selected ID, or an array of IDs when Multiple Select is on.
-Hand that straight to an element query:
+With nothing chosen that is `null`, or an empty array. Hand it straight to an element query:
 
 ```twig
 {# Section field #}
@@ -112,10 +112,23 @@ underlying models:
 | `ids()` | The selected IDs |
 | `handles()` | The selected handles |
 | `names()` | The selected names |
-| `isEmpty()` | Whether nothing is selected |
+| `isEmpty()` | Whether nothing that exists is selected |
+| `storedIds()` | Every selected ID as stored. The same as `ids()`, except [while Commerce is off](#product-types-while-commerce-is-off) |
 
 The value stored in the database is identical in both modes, so switching this setting never
 touches your content.
+
+## Product types while Commerce is off
+
+On an install where Commerce is not installed or is disabled, no product type can be listed,
+so a Product Type field cannot tell a product type that still exists from a deleted one. It
+keeps what it holds:
+
+- The field settings show the Allowed and Excluded lists as the references they are stored as,
+  with a notice, and saving the field keeps them.
+- The input shows each stored selection as `ID 12`, and saving the entry keeps it.
+- With Template Value set to `Objects`, `all()`, `ids()`, `handles()` and `names()` give
+  nothing, because no product type can be loaded. `storedIds()` still has the stored IDs.
 
 ## GraphQL
 

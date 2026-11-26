@@ -75,6 +75,22 @@ class ProductTypeField extends BaseTypeField
     }
 
     /**
+     * Product types cannot be told from here while Commerce is not installed or is disabled.
+     */
+    protected function canResolveItems(): bool
+    {
+        return $this->commerce() !== null;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function unresolvableReason(): string
+    {
+        return Craft::t('section-and-product-type', 'Craft Commerce is not installed or enabled, so product types cannot be listed.');
+    }
+
+    /**
      * The Commerce plugin, when it is installed and enabled.
      */
     private function commerce(): ?Commerce

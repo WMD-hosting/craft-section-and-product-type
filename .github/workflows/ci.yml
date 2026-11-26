@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: composer ${{ matrix.script }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.2 is the oldest PHP composer.json allows; 8.4 is the newest Craft 5 is run on here.
+        php: ['8.2', '8.4']
+        # test = PHPUnit, check-cs = ECS (ecs.php), phpstan = PHPStan (phpstan.neon)
+        script: [test, check-cs, phpstan]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, zip
+          coverage: none
+      - run: composer validate --strict
+      # No composer.lock in the repository: every run resolves the newest Craft 5 and Commerce 5 the constraints allow.
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: composer ${{ matrix.script }}
