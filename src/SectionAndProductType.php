@@ -14,6 +14,7 @@ use function CraftCms\Cms\t;
  * and Commerce product types.
  *
  * @author WMD Hosting
+ *
  * @since 1.0.0
  */
 class SectionAndProductType extends Plugin

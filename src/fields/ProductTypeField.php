@@ -47,7 +47,7 @@ class ProductTypeField extends BaseTypeField
     protected function loadItems(): array
     {
         $commerce = $this->commerce();
-        if (!$commerce) {
+        if (! $commerce) {
             return [];
         }
 
@@ -71,7 +71,7 @@ class ProductTypeField extends BaseTypeField
      */
     private function commerce(): ?ProductTypes
     {
-        if (!class_exists(ProductTypes::class) || !Plugins::isPluginEnabled('commerce')) {
+        if (! class_exists(ProductTypes::class) || ! Plugins::isPluginEnabled('commerce')) {
             return null;
         }
 

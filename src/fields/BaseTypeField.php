@@ -42,9 +42,10 @@ use function CraftCms\Cms\t;
  * content and stays IDs: an integer, or a list of integers with Multiple Select.
  *
  * @author WMD Hosting
+ *
  * @since 2.2.0
  */
-abstract class BaseTypeField extends Field implements PreviewableFieldInterface, InputSchemaFieldInterface
+abstract class BaseTypeField extends Field implements InputSchemaFieldInterface, PreviewableFieldInterface
 {
     // Public Properties
     // =========================================================================
@@ -116,7 +117,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     // =========================================================================
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * Craft only saves public properties declared outside abstract classes, so the shared
      * settings declared here must be listed, or every field save drops them.
@@ -135,7 +136,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * The allow and exclude lists are written as UIDs, so project config means the
      * same items on every install.
@@ -148,7 +149,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
 
         foreach ([static::allowedAttribute(), static::excludedAttribute()] as $attribute) {
             if (array_key_exists($attribute, $settings)) {
-                $settings[$attribute] = ItemReferences::toUids((array)$settings[$attribute], $uids);
+                $settings[$attribute] = ItemReferences::toUids((array) $settings[$attribute], $uids);
             }
         }
 
@@ -167,7 +168,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     #[Override]
-    public function settingsUi(UiContext $context = new UiContext()): Ui
+    public function settingsUi(UiContext $context = new UiContext): Ui
     {
         $words = static::itemWords();
         $uids = $this->uids();
@@ -228,7 +229,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      */
     public function allowedIds(): array
     {
-        return ItemReferences::toIds((array)$this->{static::allowedAttribute()}, $this->uids());
+        return ItemReferences::toIds((array) $this->{static::allowedAttribute()}, $this->uids());
     }
 
     /**
@@ -238,7 +239,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      */
     public function excludedIds(): array
     {
-        return ItemReferences::toIds((array)$this->{static::excludedAttribute()}, $this->uids());
+        return ItemReferences::toIds((array) $this->{static::excludedAttribute()}, $this->uids());
     }
 
     /**
@@ -253,7 +254,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         $items = $this->items();
         $handleMatches = [];
 
-        if (!$this->selectAll && $this->partOfHandle !== '') {
+        if (! $this->selectAll && $this->partOfHandle !== '') {
             foreach ($this->handles() as $id => $handle) {
                 if (stripos($handle, $this->partOfHandle) !== false) {
                     $handleMatches[] = $id;
@@ -288,7 +289,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * Stored as the field's own JSON: an integer, or a list of integers with Multiple Select.
      */
@@ -314,11 +315,11 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     public function getElementRules(ElementInterface $element): array
     {
         return [
-            function(string $attribute, mixed $value, Closure $fail): void {
+            function (string $attribute, mixed $value, Closure $fail): void {
                 $items = $this->items();
 
                 foreach ($this->valueIds($value) as $id) {
-                    if (!isset($items[$id])) {
+                    if (! isset($items[$id])) {
                         $fail(t('{attribute} is invalid.', ['attribute' => t($this->name, category: 'site')]));
 
                         return;
@@ -359,7 +360,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         $options = [];
 
         foreach ($this->inputItems($ids) as $id => $name) {
-            $options[] = ['label' => $name, 'value' => (string)$id];
+            $options[] = ['label' => $name, 'value' => (string) $id];
         }
 
         $dropdown = $this->viewMode === Plugin::VIEW_MODE_DROPDOWN;
@@ -391,7 +392,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             ->options($options)
             ->presentation($dropdown ? ChoicePresentation::Select : ChoicePresentation::Radios)
             ->withoutPlaceholder()
-            ->value(isset($ids[0]) ? (string)$ids[0] : '');
+            ->value(isset($ids[0]) ? (string) $ids[0] : '');
     }
 
     #[Override]
@@ -414,7 +415,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     // =========================================================================
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * The IDs an author may pick, so MCP clients and agents send a valid value.
      */
@@ -430,7 +431,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         }
 
         $item['description'] = implode('; ', array_map(
-            static fn(int $id, string $name) => sprintf('%d = %s (%s)', $id, $name, $handles[$id] ?? ''),
+            static fn (int $id, string $name) => sprintf('%d = %s (%s)', $id, $name, $handles[$id] ?? ''),
             array_keys($items),
             $items,
         ));
@@ -444,7 +445,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         return [
             'name' => $this->handle,
             'type' => $this->multiple ? Type::listOf(Type::int()) : Type::int(),
-            'resolve' => function($source) {
+            'resolve' => function ($source) {
                 $ids = $this->valueIds($source->getFieldValue($this->handle));
 
                 return $this->multiple ? $ids : ($ids[0] ?? null);
@@ -470,7 +471,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $uids = [];
         foreach ($this->loadItems() as $id => $item) {
-            $uids[(int)$id] = (string)$item->uid;
+            $uids[(int) $id] = (string) $item->uid;
         }
 
         return $uids;
@@ -485,7 +486,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $names = [];
         foreach ($this->loadItems() as $id => $item) {
-            $names[(int)$id] = t((string)$item->name, category: 'site');
+            $names[(int) $id] = t((string) $item->name, category: 'site');
         }
 
         return $names;
@@ -500,7 +501,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     {
         $handles = [];
         foreach ($this->loadItems() as $id => $item) {
-            $handles[(int)$id] = (string)($item->handle ?? '');
+            $handles[(int) $id] = (string) ($item->handle ?? '');
         }
 
         return $handles;
@@ -522,7 +523,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             $handle = $handles[$id] ?? '';
             $options[] = [
                 'label' => $handle !== '' ? sprintf('%s (%s)', $name, $handle) : $name,
-                'value' => $uids[$id] ?? (string)$id,
+                'value' => $uids[$id] ?? (string) $id,
             ];
         }
 
@@ -533,7 +534,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      * The items the input offers: the allowed ones, plus any stored selection
      * that has since been excluded, so saving the entry does not silently drop it.
      *
-     * @param int[] $selected
+     * @param  int[]  $selected
      * @return array<int, string>
      */
     protected function inputItems(array $selected): array
@@ -542,7 +543,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
         $items = $this->items();
 
         foreach ($selected as $id) {
-            if (!isset($options[$id]) && isset($items[$id])) {
+            if (! isset($options[$id]) && isset($items[$id])) {
                 $options[$id] = $items[$id];
             }
         }
@@ -553,7 +554,7 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
     /**
      * Wrap the selected IDs in a SelectedItems object holding the models.
      *
-     * @param int[] $ids
+     * @param  int[]  $ids
      */
     protected function toSelectedItems(array $ids): SelectedItems
     {
@@ -586,14 +587,14 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
             $value = Json::decodeIfJson($value);
         }
 
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             $value = ($value === null || $value === '') ? [] : [$value];
         }
 
         $ids = [];
         foreach ($value as $id) {
             if (is_int($id) || (is_string($id) && ctype_digit($id))) {
-                $ids[(int)$id] = (int)$id;
+                $ids[(int) $id] = (int) $id;
             }
         }
 
@@ -605,8 +606,8 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface,
      */
     private function existingItemsRule(): Closure
     {
-        return function(string $attribute, mixed $value, Closure $fail): void {
-            if (ItemReferences::unresolved((array)$value, $this->uids()) === []) {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (ItemReferences::unresolved((array) $value, $this->uids()) === []) {
                 return;
             }
 

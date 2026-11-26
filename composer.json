@@ -32,6 +32,7 @@
         "craftcms/cms": "^6.0.0-beta.1"
     },
     "require-dev": {
+        "laravel/pint": "^1.27",
         "orchestra/testbench": "^11.0",
         "phpunit/phpunit": "^12.0 || ^13.0"
     },
@@ -56,7 +57,9 @@
         "class": "wmd\\sectionandproducttype\\SectionAndProductType"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "check-cs": "pint --test",
+        "fix-cs": "pint"
     },
     "minimum-stability": "beta",
     "prefer-stable": true,
