@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - GitHub Actions run the tests, Pint and Larastan on PHP 8.5, and the code style and static analysis scripts 3.x lost with the Craft 5 tooling are back (`composer test`, `composer check-cs`, `composer phpstan`).
 
 ### Changed
+- The plugin's description is one sentence: "Field types for selecting sections, entry types and Commerce product types."
 - README: View Mode and Allowed / Excluded describe the Craft 6 inputs, the Craft 5 downgrade note is gone, and a new section says what happens to Tag Group fields on a site upgraded from Craft 5.
 
 ## 3.0.0-beta.2 - 2026-11-23
