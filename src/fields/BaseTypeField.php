@@ -376,9 +376,33 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
     {
         $view = Craft::$app->getView();
         $view->registerAssetBundle(FieldSettingsAsset::class);
+
+        return $view->renderTemplate('section-and-product-type/_components/fields/_settings', $this->settingsVariables());
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getInputHtml(mixed $value, ?ElementInterface $element = null): string
+    {
+        return Craft::$app->getView()->renderTemplate('section-and-product-type/_components/fields/_input', $this->inputVariables($value));
+    }
+
+    /**
+     * What the settings template is given.
+     *
+     * Each of the two lists posts back the `options` its values tick, so `allowedValues`,
+     * `excludedValues` and `options` decide what saving the form keeps.
+     *
+     * @return array<string, mixed>
+     *
+     * @since 2.3.1
+     */
+    protected function settingsVariables(): array
+    {
         $uids = $this->uids();
 
-        return $view->renderTemplate('section-and-product-type/_components/fields/_settings', [
+        return [
             'field' => $this,
             'words' => static::itemWords(),
             'allowedAttribute' => static::allowedAttribute(),
@@ -388,22 +412,38 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
             'options' => $this->options(),
             'viewModes' => SectionAndProductType::viewModeOptions(),
             'valueTypes' => SectionAndProductType::valueTypeOptions(),
-        ]);
+        ];
     }
 
     /**
-     * @inheritdoc
+     * What the input template is given: `notice`, a sentence shown instead of the control, or
+     * null; `options`, the names an author picks from keyed by ID, or null when no control is
+     * shown; and `value`, an ID list with Multiple Select, otherwise one ID or ''.
+     *
+     * @return array<string, mixed>
+     *
+     * @since 2.3.1
      */
-    public function getInputHtml(mixed $value, ?ElementInterface $element = null): string
+    protected function inputVariables(mixed $value): array
     {
         $words = static::itemWords();
+        $variables = [
+            'field' => $this,
+            'words' => $words,
+            'dropdown' => $this->viewMode === SectionAndProductType::VIEW_MODE_DROPDOWN,
+            'notice' => null,
+            'options' => null,
+            'value' => null,
+        ];
 
         if (!$this->selectAll && $this->allowedIds() === [] && $this->partOfHandle === '') {
-            return Html::tag('p', Craft::t(
+            $variables['notice'] = Craft::t(
                 'section-and-product-type',
                 'No {plural} are allowed for this field yet. Allow some in the field settings.',
                 ['plural' => $words['plural']]
-            ), ['class' => 'light']);
+            );
+
+            return $variables;
         }
 
         $options = $this->getAllowedItems();
@@ -422,13 +462,10 @@ abstract class BaseTypeField extends Field implements PreviewableFieldInterface
             $options = ['' => Craft::t('app', 'None')] + $options;
         }
 
-        return Craft::$app->getView()->renderTemplate('section-and-product-type/_components/fields/_input', [
-            'field' => $this,
-            'value' => $this->multiple ? $ids : ($ids[0] ?? ''),
-            'options' => $options,
-            'words' => $words,
-            'dropdown' => $this->viewMode === SectionAndProductType::VIEW_MODE_DROPDOWN,
-        ]);
+        $variables['options'] = $options;
+        $variables['value'] = $this->multiple ? $ids : ($ids[0] ?? '');
+
+        return $variables;
     }
 
     /**
