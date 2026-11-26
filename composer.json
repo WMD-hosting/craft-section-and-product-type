@@ -32,6 +32,7 @@
         "craftcms/cms": "^6.0.0-beta.1"
     },
     "require-dev": {
+        "larastan/larastan": "^3.14",
         "laravel/pint": "^1.27",
         "orchestra/testbench": "^11.0",
         "phpunit/phpunit": "^12.0 || ^13.0"
@@ -59,7 +60,8 @@
     "scripts": {
         "test": "phpunit",
         "check-cs": "pint --test",
-        "fix-cs": "pint"
+        "fix-cs": "pint",
+        "phpstan": "phpstan analyse --no-progress --memory-limit=1G"
     },
     "minimum-stability": "beta",
     "prefer-stable": true,
