@@ -75,7 +75,33 @@ trait InspectsFields
     private function saveFromTheSettingsForm(BaseTypeField $field): FieldInterface
     {
         self::assertTrue(Fields::saveField($field, false));
-        $stored = $this->reload($field);
+
+        return $this->saveTheSettingsForm($this->reload($field));
+    }
+
+    /**
+     * A stored field whose row holds `$settings` the way applying project config writes them: as given,
+     * without the field's own getSettings() in between. That is how a hand-edited list reaches the field
+     * with its keys.
+     *
+     * @param  array<string, mixed>  $settings
+     */
+    private function storedWithSettings(BaseTypeField $field, array $settings): FieldInterface
+    {
+        self::assertTrue(Fields::saveField($field, false));
+
+        $row = DB::table(Table::FIELDS)->where('id', $field->id);
+        $row->update(['settings' => json_encode(array_replace(json_decode((string) $row->value('settings'), true), $settings))]);
+
+        return $this->reload($field);
+    }
+
+    /**
+     * Open a stored field's settings in the control panel and save them untouched.
+     */
+    private function saveTheSettingsForm(FieldInterface $stored): FieldInterface
+    {
+        self::assertInstanceOf(BaseTypeField::class, $stored);
 
         $this->actingAs(User::query()->firstOrFail())
             ->postJson(action([FieldsController::class, 'store']), [

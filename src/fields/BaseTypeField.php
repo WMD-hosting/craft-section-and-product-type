@@ -578,8 +578,12 @@ abstract class BaseTypeField extends Field implements InputSchemaFieldInterface,
 
         if (! $this->canResolveItems()) {
             // The lists are shown as stored. They require an option match, so every reference
-            // they keep is an option, labelled as itself.
-            $stored = [...(array) $this->{static::allowedAttribute()}, ...(array) $this->{static::excludedAttribute()}];
+            // they keep is an option, labelled as itself. Merged by value: spread as they are, lists
+            // with string keys would lose the reference whose key the other list shares.
+            $stored = [
+                ...array_values((array) $this->{static::allowedAttribute()}),
+                ...array_values((array) $this->{static::excludedAttribute()}),
+            ];
 
             foreach (ItemReferences::forForm($stored, [], false) as $reference) {
                 $options[] = ['label' => $reference, 'value' => $reference];

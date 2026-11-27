@@ -35,6 +35,12 @@ final class MissingItemsTest extends PluginTestCase
     /** An ID as fields saved before 2.3.0 hold them. */
     private const string LEGACY_PRODUCT_TYPE_ID = '7';
 
+    /** The lists as hand-edited project config can hold them: string keys, one of them in both lists. */
+    private const array KEYED_LISTS = [
+        'allowProductTypes' => ['a' => self::PRODUCT_TYPE_UID, 'b' => self::LEGACY_PRODUCT_TYPE_ID],
+        'excludedProductTypes' => ['a' => self::OTHER_PRODUCT_TYPE_UID],
+    ];
+
     /** An ID no section has. */
     private const int GONE = 999999;
 
@@ -96,6 +102,41 @@ final class MissingItemsTest extends PluginTestCase
     public function test_saving_the_settings_form_keeps_the_product_type_lists_while_commerce_is_off(): void
     {
         $saved = $this->saveFromTheSettingsForm($this->productTypeField());
+
+        self::assertSame([self::PRODUCT_TYPE_UID, self::LEGACY_PRODUCT_TYPE_ID], $saved->allowProductTypes);
+        self::assertSame([self::OTHER_PRODUCT_TYPE_UID], $saved->excludedProductTypes);
+    }
+
+    /**
+     * Lists from hand-edited project config, or set from code, can carry string keys. The options are built
+     * from both lists, and a key the two share must not cost a reference its option.
+     */
+    public function test_product_type_lists_that_share_a_string_key_have_an_option_for_every_reference(): void
+    {
+        $controls = $this->settingsFormControls(new ProductTypeField(['handle' => 'productTypes', ...self::KEYED_LISTS]));
+
+        foreach (['allowProductTypes', 'excludedProductTypes'] as $name) {
+            self::assertEqualsCanonicalizing(
+                [self::PRODUCT_TYPE_UID, self::LEGACY_PRODUCT_TYPE_ID, self::OTHER_PRODUCT_TYPE_UID],
+                array_column($controls[$name]->props()['options'], 'value'),
+                $name,
+            );
+        }
+    }
+
+    /**
+     * Applied project config hands the field its lists as they are written, keys included. The form posts
+     * each list by value, so the save leaves plain lists, every reference still in its own.
+     */
+    public function test_saving_the_settings_form_keeps_product_type_lists_that_share_a_string_key(): void
+    {
+        $stored = $this->storedWithSettings($this->productTypeField(), self::KEYED_LISTS);
+
+        // The field reads them as project config left them, keys included.
+        self::assertSame(self::KEYED_LISTS['allowProductTypes'], $stored->allowProductTypes);
+        self::assertSame(self::KEYED_LISTS['excludedProductTypes'], $stored->excludedProductTypes);
+
+        $saved = $this->saveTheSettingsForm($stored);
 
         self::assertSame([self::PRODUCT_TYPE_UID, self::LEGACY_PRODUCT_TYPE_ID], $saved->allowProductTypes);
         self::assertSame([self::OTHER_PRODUCT_TYPE_UID], $saved->excludedProductTypes);
