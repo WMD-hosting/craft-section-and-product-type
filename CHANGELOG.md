@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 3.0.0-beta.4 - 2026-11-27
 
 ### Fixed
 - While Commerce is off, the settings of a Product Type field no longer leave a stored reference out of the options of the Allowed and Excluded lists when the two lists carry string keys (hand-edited project config, or lists set from code) and share one. The saved lists were not affected.
